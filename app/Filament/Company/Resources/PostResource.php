@@ -9,6 +9,8 @@ use App\Models\Platform;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
+use Livewire\Attributes\Reactive;
+use Illuminate\Support\HtmlString;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Company\Resources\PostResource\Pages;
@@ -33,7 +35,17 @@ class PostResource extends Resource
                             ->schema([
                                 Forms\Components\TextInput::make('content')
                                     ->required()
+                                    ->live(debounce: 500)
+                                    ->afterStateUpdated(function ($set) {
+                                        $set('preview_version', now()->timestamp); // Force refresh
+                                    })
                                     ->label('Post Content'),
+                                Forms\Components\TextInput::make('author')
+                                    ->live(debounce: 500)
+                                    ->afterStateUpdated(function ($set) {
+                                        $set('preview_version', now()->timestamp);
+                                    })
+                                    ->label('Post Author'),
                                 Forms\Components\Repeater::make('platformPosts')
                                     ->relationship()
                                     ->schema([
@@ -51,10 +63,6 @@ class PostResource extends Resource
                                                     ->unique()
                                                     ->values()
                                                     ->toArray();
-
-                                                // Debug output
-                                                debug($usedPlatformIds); // Laravel Debugbar
-                                                logger()->debug('Used platform IDs:', $usedPlatformIds);
 
                                                 return \App\Models\Platform::query()
                                                     ->whereNotIn('id', $usedPlatformIds)
@@ -96,9 +104,61 @@ class PostResource extends Resource
                             ])
                             ->columnSpan(1),
 
+
+                        // Forms\Components\View::make('livewire.post-image-preview')
+                        //     ->columnSpan(1)
+                        //     ->viewData([
+                        //         'statePath' => 'mountedFormComponentData' // Filament's default
+                        //     ]),
+
+                        // Forms\Components\View::make('filament.custom.social-preview')
+                        //     ->viewData([
+                        //         'name' => fn($get) => $get('name'),
+                        //         'author' => fn($get) => $get('author')
+                        //     ]),
+
+                        Forms\Components\Placeholder::make('preview')
+                        ->label('Image Preview')
+                        ->content(function ($get) {
+                            return new HtmlString(
+                                view('filament.custom.social-preview', [
+                                    'content' => $get('content'),
+                                    'author' => $get('author'),
+                                    'version' => 1,
+                                ])->render()
+                            );
+                        }),
+                    
+
+                        // Forms\Components\View::make('filament.custom.social-preview')
+                        //     ->viewData([
+                        //         'content' => fn () => $this->get('content') ?? 'default',
+                        //         'author' => fn () => $this->get('author') ?? '',
+                        //         'version' => fn () => $this->get('preview_version') ?? 0
+                        //     ])
+                        //     ->columnSpanFull()
+
                         // Right Column (Custom View)
-                        \Filament\Forms\Components\View::make('filament.custom.sidebar-view')
-                            ->columnSpan(1),
+
+                        // \Filament\Forms\Components\Livewire::make('postPreview')
+                        //     ->livewire(\App\Livewire\PostImagePreview::class)
+                        //     ->columnSpan(1),
+
+                        // \Filament\Forms\Components\View::make('filament.custom.social-preview')
+                        //     ->columnSpan(1)
+                        //     ->viewData([
+                        //         'imageUrl' => function ($get) {
+                        //             return cache()->rememberForever(
+                        //                 'social-preview-'.md5($get('content').$get('author')),
+                        //                 fn() => app(\App\Services\SocialMediaImageGenerator::class)
+                        //                     ->generate($get('content'), $get('author'))
+                        //             );
+                        //         },
+                        //         'version' => new Reactive, // Makes it reactive to changes
+                        //     ])
+                        //     ->extraAttributes([
+                        //         'wire:key' => 'social-preview-'.time(), // Force re-render
+                        //     ]),
                     ])
             ]);
     }
