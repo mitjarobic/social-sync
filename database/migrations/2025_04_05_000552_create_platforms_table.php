@@ -14,7 +14,12 @@ return new class extends Migration
         Schema::create('platforms', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained()->onDelete('cascade'); // Foreign key to Company
-            $table->string('name')->unique(); // Unique name for the platform
+            $table->string('label')->unique(); // Unique name for the platform
+            $table->string('provider'); // Type of platform (e.g., 'facebook', 'instagram', 'x')
+            $table->string('external_id')->nullable();   // Page ID, Instagram ID, or Twitter handle
+            $table->string('external_name')->nullable(); // Page name, Instagram username, or Twitter handle
+            $table->string('external_url')->nullable();  // URL to the page
+            $table->string('external_token')->nullable();  // Platform-specific token
             $table->timestamps();
         });
     }

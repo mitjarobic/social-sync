@@ -2,16 +2,18 @@
 
 namespace App\Filament\Company\Resources;
 
-use App\Filament\Company\Resources\PlatformResource\Pages;
-use App\Filament\Company\Resources\PlatformResource\RelationManagers;
-use App\Models\Platform;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
+use App\Models\Platform;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Company\Resources\PlatformResource\Pages;
+use App\Filament\Company\Resources\PlatformResource\RelationManagers;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 
 class PlatformResource extends Resource
 {
@@ -25,10 +27,49 @@ class PlatformResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('name')
-                    ->required()
-                    ->unique(ignoreRecord: true)
-                    ->label('Platform Name'),
+                Forms\Components\Grid::make()
+                    ->schema([
+                        Forms\Components\Select::make('provider')
+                            ->label('Provider')
+                            ->options([
+                                'facebook' => 'Facebook',
+                                'instagram' => 'Instagram',
+                                'x' => 'X (Twitter)',
+                            ])
+                            ->required()
+                            ->reactive(),
+                        Forms\Components\Select::make('external_id')
+                            ->label('Page / Account')
+                            ->options(fn(Get $get) => match ($get('provider')) {
+                                'facebook' => app(\App\Services\FacebookService::class)->listPages(),
+                                default => [],
+                            })
+                            ->selectablePlaceholder(false)
+                            ->placeholder('Select a page or account')
+                            ->loadingMessage('Loading pages or accounts ...')
+                            ->required()
+                            ->reactive()
+                            ->afterStateUpdated(fn($state, Set $set, Get $get) => match ($get('provider')) {
+                                'facebook' => app(\App\Services\FacebookService::class)->fillPageDetails($state, $set),
+                                default => null,
+                            }),
+                        Forms\Components\TextInput::make('label')
+                            ->required()
+                            ->unique(ignoreRecord: true)
+                            ->label('Label'),
+                        Forms\Components\TextInput::make('external_name')
+                            ->label('External Name')
+                            ->disabled()
+                            ->dehydrated(),
+
+                        Forms\Components\TextInput::make('external_url')
+                            ->label('External URL')
+                            ->disabled()
+                            ->dehydrated(),
+
+                        Forms\Components\Hidden::make('external_token'), // storing access token
+
+                    ])->columns(1)->maxWidth('lg'),
             ]);
     }
 
@@ -36,8 +77,24 @@ class PlatformResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
-                    ->label('Platform Name')
+                Tables\Columns\TextColumn::make('label')
+                    ->label('Label')
+                    ->sortable()
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('provider')
+                    ->label('Platform')
+                    ->sortable()
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('external_name')
+                    ->label('Name')
+                    ->sortable()
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('external_url')
+                    ->label('Url')
+                    ->formatStateUsing(fn() => 'Link')
+                    ->url(fn($record) => $record->external_url)
+                    ->openUrlInNewTab()
+                    ->color('primary')
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')

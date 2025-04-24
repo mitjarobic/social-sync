@@ -7,7 +7,10 @@ use App\Models\Post;
 use Filament\Tables;
 use App\Models\Platform;
 use Filament\Forms\Form;
+use App\Enums\PostStatus;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Livewire\Attributes\Reactive;
 use Illuminate\Support\HtmlString;
@@ -15,6 +18,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Company\Resources\PostResource\Pages;
 use App\Filament\Company\Resources\PostResource\RelationManagers;
+use App\Filament\Company\Resources\PlatformPostRelationManagerResource\RelationManagers\PlatformPostsRelationManager;
 
 class PostResource extends Resource
 {
@@ -31,23 +35,16 @@ class PostResource extends Resource
                 \Filament\Forms\Components\Grid::make(2)
                     ->schema([
                         // Left Column (Widgets)
-                        \Filament\Forms\Components\Section::make('Widgets')
+                        \Filament\Forms\Components\Section::make('Post')
                             ->schema([
-                                Forms\Components\TextInput::make('content')
+                                Forms\Components\Textarea::make('content')
                                     ->required()
-                                    ->live(debounce: 500)
-                                    ->afterStateUpdated(function ($set) {
-                                        $set('preview_version', now()->timestamp); // Force refresh
-                                    })
-                                    ->label('Post Content'),
-                                Forms\Components\TextInput::make('author')
-                                    ->live(debounce: 500)
-                                    ->afterStateUpdated(function ($set) {
-                                        $set('preview_version', now()->timestamp);
-                                    })
-                                    ->label('Post Author'),
+                                    ->label('Content'),
                                 Forms\Components\Repeater::make('platformPosts')
                                     ->relationship()
+                                    ->default([
+                                        ['status' => 'draft'] // Auto-set for new items
+                                    ])
                                     ->schema([
                                         Forms\Components\Select::make('platform_id') // platform_id
                                             ->options(function (callable $get, callable $set, $state, $livewire) {
@@ -66,7 +63,7 @@ class PostResource extends Resource
 
                                                 return \App\Models\Platform::query()
                                                     ->whereNotIn('id', $usedPlatformIds)
-                                                    ->pluck('name', 'id');
+                                                    ->pluck('label', 'id');
                                             })
                                             ->reactive()
                                             ->label('Platform')
@@ -94,71 +91,53 @@ class PostResource extends Resource
                                         )->toArray();
                                     }),
                                 Forms\Components\Select::make('status')
-                                    ->options([
-                                        'draft' => 'Draft',
-                                        'scheduled' => 'Scheduled',
-                                        'posted' => 'Posted',
-                                    ])
-                                    ->default('draft')
+                                    ->options(PostStatus::class)
+                                    ->enum(PostStatus::class)
+                                    ->default(PostStatus::DRAFT->value)
+                                    ->required()
                                     ->label('Status'),
+                                Forms\Components\View::make('platform_status')
+                                    ->view('filament.components.posts.platform-status')
+                                    ->viewData([
+                                        'platformPosts' => function ($record) {
+                                            return $record->platformPosts()->with('platform')->get();
+                                        }
+                                    ])
+                                    ->columnSpanFull()
+                                    ->visibleOn('edit') // Only show when editing
                             ])
                             ->columnSpan(1),
-
-
-                        // Forms\Components\View::make('livewire.post-image-preview')
-                        //     ->columnSpan(1)
-                        //     ->viewData([
-                        //         'statePath' => 'mountedFormComponentData' // Filament's default
-                        //     ]),
-
-                        // Forms\Components\View::make('filament.custom.social-preview')
-                        //     ->viewData([
-                        //         'name' => fn($get) => $get('name'),
-                        //         'author' => fn($get) => $get('author')
-                        //     ]),
-
-                        Forms\Components\Placeholder::make('preview')
-                        ->label('Image Preview')
-                        ->content(function ($get) {
-                            return new HtmlString(
-                                view('filament.custom.social-preview', [
-                                    'content' => $get('content'),
-                                    'author' => $get('author'),
-                                    'version' => 1,
-                                ])->render()
-                            );
-                        }),
-                    
-
-                        // Forms\Components\View::make('filament.custom.social-preview')
-                        //     ->viewData([
-                        //         'content' => fn () => $this->get('content') ?? 'default',
-                        //         'author' => fn () => $this->get('author') ?? '',
-                        //         'version' => fn () => $this->get('preview_version') ?? 0
-                        //     ])
-                        //     ->columnSpanFull()
-
-                        // Right Column (Custom View)
-
-                        // \Filament\Forms\Components\Livewire::make('postPreview')
-                        //     ->livewire(\App\Livewire\PostImagePreview::class)
-                        //     ->columnSpan(1),
-
-                        // \Filament\Forms\Components\View::make('filament.custom.social-preview')
-                        //     ->columnSpan(1)
-                        //     ->viewData([
-                        //         'imageUrl' => function ($get) {
-                        //             return cache()->rememberForever(
-                        //                 'social-preview-'.md5($get('content').$get('author')),
-                        //                 fn() => app(\App\Services\SocialMediaImageGenerator::class)
-                        //                     ->generate($get('content'), $get('author'))
-                        //             );
-                        //         },
-                        //         'version' => new Reactive, // Makes it reactive to changes
-                        //     ])
-                        //     ->extraAttributes([
-                        //         'wire:key' => 'social-preview-'.time(), // Force re-render
-                        //     ]),
+                        \Filament\Forms\Components\Section::make('Image')
+                            ->schema([
+                                Forms\Components\TextInput::make('image_content')
+                                    ->required()
+                                    ->live(debounce: 500)
+                                    ->afterStateUpdated(function ($set) {
+                                        $set('preview_version', now()->timestamp); // Force refresh
+                                    })
+                                    ->label('Content'),
+                                Forms\Components\TextInput::make('image_author')
+                                    ->live(debounce: 500)
+                                    ->afterStateUpdated(function ($set) {
+                                        $set('preview_version', now()->timestamp);
+                                    })
+                                    ->label('Author'),
+                                // Forms\Components\TextInput::make('preview_version')
+                                //     ->hidden()
+                                //     ->default(now()->timestamp),
+                                Forms\Components\Placeholder::make('preview')
+                                    ->label('Image Preview')
+                                    ->content(function ($get) {
+                                        return new HtmlString(
+                                            view('filament.custom.social-preview', [
+                                                'content' => $get('image_content'),
+                                                'author' => $get('image_author'),
+                                                'version' => 1,
+                                            ])->render()
+                                        );
+                                    }),
+                            ])
+                            ->columnSpan(1),
                     ])
             ]);
     }
@@ -168,15 +147,56 @@ class PostResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('content')->limit(50),
-                Tables\Columns\TextColumn::make('platform')->label('Social Media Platform'),
-                Tables\Columns\TextColumn::make('status'),
-                Tables\Columns\TextColumn::make('scheduled_at')->sortable(),
+                Tables\Columns\TextColumn::make('platformPosts.platform.name')
+                    ->label('Platforms')
+                    ->formatStateUsing(function ($state, Post $record) {
+                        return $record->platformPosts
+                            ->pluck('platform.name')
+                            ->unique()
+                            ->join(', ');
+                    }),
+                Tables\Columns\TextColumn::make('status')
+                    ->badge()
+                    ->color(fn(PostStatus $state) => $state->color()),
+                Tables\Columns\TextColumn::make('created_at')->sortable(),
+                Tables\Columns\TextColumn::make('platform_status')
+                    ->label('Platform Status')
+                    ->formatStateUsing(function (Post $record) {
+                        $statuses = $record->platformPosts
+                            ->groupBy('status')
+                            ->map(
+                                fn($items, $status) =>
+                                $items->count() . ' ' . Str::of($status)->title()
+                            )
+                            ->join(', ');
+
+                        return $statuses ?: 'No platforms';
+                    })
+                    ->badge()
+                    ->color(fn(Post $record) => match (true) {
+                        $record->platformPosts->contains('status', 'failed') => 'danger',
+                        $record->platformPosts->every('status', 'published') => 'success',
+                        default => 'warning'
+                    })
             ])
             ->filters([
                 //
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('publish')
+                    ->requiresConfirmation()
+                    ->action(function (Post $record) {
+                        $record->update([
+                            'status' => \App\Enums\PostStatus::PUBLISHING
+                        ]);
+
+                        \App\Jobs\DispatchPlatformPosts::dispatch($record);
+                    })
+                    ->visible(
+                        fn(Post $record) =>
+                        $record->status === \App\Enums\PostStatus::DRAFT
+                    )
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -189,6 +209,7 @@ class PostResource extends Resource
     {
         return [
             //
+            PlatformPostsRelationManager::class,
         ];
     }
 

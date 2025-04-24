@@ -10,9 +10,11 @@
         "andrewdwallo/filament-companies": "^4.2",
         "filament/filament": "^3.0",
         "intervention/image": "^3.11",
+        "janu-software/facebook-php-sdk": "^0.4.0",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
-        "laravel/tinker": "^2.10.1"
+        "laravel/tinker": "^2.10.1",
+        "php-http/guzzle7-adapter": "^1.1"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.15",

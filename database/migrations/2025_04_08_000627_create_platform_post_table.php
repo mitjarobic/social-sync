@@ -1,8 +1,9 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
+use App\Enums\PlatformPostStatus;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
@@ -13,10 +14,29 @@ return new class extends Migration
     {
         Schema::create('platform_post', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('company_id')->constrained()->onDelete('cascade');
             $table->foreignId('platform_id')->constrained()->onDelete('cascade');
             $table->foreignId('post_id')->constrained()->onDelete('cascade');
-            $table->timestamp('scheduled_at')->nullable(); // Scheduled posting time
+
+            $table->enum('status', PlatformPostStatus::values())
+                ->default(PlatformPostStatus::DRAFT->value)
+                ->index();
+
+            // External data fields
+            $table->string('external_id')->nullable()->index();
+            $table->string('external_url')->nullable();
+
+            // Status tracking
+            $table->json('metadata')->nullable();
+
+            // Timestamps
+            $table->timestamp('scheduled_at')->nullable()->index();
+            $table->timestamp('posted_at')->nullable();
             $table->timestamps();
+
+            // Indexes for performance
+            $table->index(['post_id', 'status']);
+            $table->index(['platform_id', 'status']);
         });
     }
 

@@ -30,3 +30,9 @@ Route::get('/debug-preview', function () {
     ]);
 });
 
+Route::get('/privacy', function () {
+   return "Privacy Policy";
+});
+
+
+
