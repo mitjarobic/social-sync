@@ -9,7 +9,6 @@ use App\Services\InstagramService;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use App\Services\SocialMediaImageGenerator;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 
@@ -19,26 +18,24 @@ class PostToInstagram implements ShouldQueue
 
     public function __construct(public PlatformPost $platformPost) {}
 
-    public function handle(InstagramService $service,  SocialMediaImageGenerator $generator)
+    public function handle(InstagramService $service)
     {
         try {
-            dd(1);
-            $jpegData = $generator->generate($this->platformPost->post->image_content, $this->platformPost->post->image_author);
-            $filename = 'posts/test-' . now()->timestamp . '.jpg';
+            $imageUrl = DevHelper::withNgrokUrl(ImageStore::url($this->platformPost->post->image_path));
 
-            $imageUrl = DevHelper::withNgrokUrl(ImageStore::save($filename, $jpegData));
-
-
-            $response = $service->post(
+            $result = $service->post(
+                $this->platformPost->platform->external_id,
+                $this->platformPost->platform->external_token,
                 $this->platformPost->post->content,
                 $imageUrl
             );
 
             $this->platformPost->update([
                 'status' => \App\Enums\PlatformPostStatus::PUBLISHED,
-                'external_id' => $response['id'],
+                'external_id' => $result['response']['id'],
+                'external_url' => $result['url'],
                 'posted_at' => now(),
-                'metadata' => $response
+                'metadata' => $result['response'],
             ]);
         } catch (\Exception $e) {
             $this->platformPost->update([

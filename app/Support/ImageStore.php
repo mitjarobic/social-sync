@@ -8,10 +8,9 @@ use Illuminate\Support\Facades\Storage;
 
 class ImageStore
 {
-    public static function save(string $path, $imageData): string
+    public static function save(string $path, $imageData): void
     {
         Storage::disk('public')->put($path, $imageData);
-        return static::url($path);
     }
 
     public static function delete(string $path): void

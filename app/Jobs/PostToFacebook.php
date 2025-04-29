@@ -9,7 +9,6 @@ use Illuminate\Bus\Queueable;
 use App\Services\FacebookService;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
-use App\Services\SocialMediaImageGenerator;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 
@@ -19,13 +18,10 @@ class PostToFacebook implements ShouldQueue
 
     public function __construct(public PlatformPost $platformPost) {}
 
-    public function handle(FacebookService $service, SocialMediaImageGenerator $generator)
+    public function handle(FacebookService $service)
     {
         try {
-            $jpegData = $generator->generate($this->platformPost->post->image_content, $this->platformPost->post->image_author);
-            $filename = 'posts/' . now()->timestamp . '.jpg';
-
-            $imageUrl = DevHelper::withNgrokUrl(ImageStore::save($filename, $jpegData));
+            $imageUrl = DevHelper::withNgrokUrl(ImageStore::url($this->platformPost->post->image_path));
 
             $result = $service->post(
                 $this->platformPost->platform->external_id,
@@ -35,17 +31,12 @@ class PostToFacebook implements ShouldQueue
             );
 
             $this->platformPost->update([
-                // 'status' => PlatformPostStatus::PUBLISHED,
+                'status' => \App\Enums\PlatformPostStatus::PUBLISHED,
                 'external_id' => $result['response']['id'],
                 'external_url' => $result['url'],
                 'posted_at' => now(),
                 'metadata' => $result['response'],
             ]);
-
-            if (ImageStore::exists($filename)) {
-                ImageStore::delete($filename);
-            }
-
         } catch (\Exception $e) {
 
             $this->platformPost->update([

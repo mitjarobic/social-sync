@@ -3,15 +3,17 @@
 namespace App\Models;
 
 use App\Enums\PlatformPostStatus;
-use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\Model;
 
-class PlatformPost extends Pivot
+
+class PlatformPost extends Model
 {
     protected $table = 'platform_post';
 
     protected $fillable = [
-        'post_id',
+        'company_id',
         'platform_id',
+        'post_id',
         'status',
         'external_id',
         'external_url',

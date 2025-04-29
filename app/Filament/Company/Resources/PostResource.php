@@ -46,6 +46,9 @@ class PostResource extends Resource
                                         ['status' => 'draft'] // Auto-set for new items
                                     ])
                                     ->schema([
+                                        Forms\Components\TextInput::make('company_id')
+                                            ->default(auth()->user()->currentCompany->id)
+                                            ->dehydrated(true),
                                         Forms\Components\Select::make('platform_id') // platform_id
                                             ->options(function (callable $get, callable $set, $state, $livewire) {
                                                 // Get all repeater items

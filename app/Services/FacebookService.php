@@ -21,34 +21,35 @@ class FacebookService
 
     public function listPages(): array
     {
-        $token = config('services.facebook.user_token'); // your long-lived user token
+        try {
+            $token = config('services.facebook.user_token'); // your long-lived user token
 
-        $response = $this->fb->get('/me/accounts', $token);
+            $response = $this->fb->get('/me/accounts', $token);
+    
+            $pages = $response->getDecodedBody()['data'] ?? [];
 
-        if ($response->isError()) {
-            throw new \Exception("Failed to fetch pages: " . $response->getMessage());
+            return collect($pages)->mapWithKeys(fn($page) => [$page['id'] => $page['name']])->all();
+
+        } catch (\Throwable $e) {
+            throw new \Exception("Failed to fetch Facebook Pages: " . $e->getMessage());
         }
-
-        $pages = $response->getDecodedBody()['data'] ?? [];
-
-        return collect($pages)->mapWithKeys(fn($page) => [$page['id'] => $page['name']])->all();
     }
 
     public function fillPageDetails(string $pageId, Set $set): void
     {
         $token = config('services.facebook.user_token');
-        $response = $this->fb->get('/me/accounts', $token);
+        $response = $this->fb->get('/me/accounts?fields=id,name,picture{url},access_token', $token);
 
         $pages = $response->getDecodedBody()['data'] ?? [];
 
-        $match = collect($pages)->firstWhere('id', $pageId);
+        $page = collect($pages)->firstWhere('id', $pageId);
 
-        if ($match) {
-            // Debugbar::info($match);
-            $set('label', $match['name']);
-            $set('external_name', $match['name']);
-            $set('external_url', "https://facebook.com/{$match['id']}");
-            $set('external_token', $match['access_token'] ?? null);
+        if ($page) {
+            $set('label', $page['name']);
+            $set('external_name', $page['name']);
+            $set('external_url', "https://facebook.com/{$page['id']}");
+            $set('external_picture_url', $page['picture']['data']['url'] ?? null);
+            $set('external_token', $page['access_token'] ?? null);
         }
     }
 

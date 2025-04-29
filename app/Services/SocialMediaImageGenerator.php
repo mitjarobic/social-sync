@@ -9,7 +9,7 @@ use Intervention\Image\Drivers\Gd\Driver;
 class SocialMediaImageGenerator
 {
 
-    public function generate(string $content, ?string $author = null): string
+    public static function generate(string $content, ?string $author = null): string
     {
         $manager = new ImageManager(new Driver());
 
@@ -22,23 +22,23 @@ class SocialMediaImageGenerator
         $yAxis = $author ? 480 : 540; // Adjust Y-axis based on author presence
 
         $maxWidth = 20; // Characters per line
-    
+
         // Calculate text positioning
         $wrappedText = wordwrap($content, $maxWidth, "\n");
         $lines = explode("\n", $wrappedText);
         $totalHeight = count($lines) * $contentFontSize * $lineHeight;
-        
+
         // Base Y position (centered vertically)
         $baseY = $author ? 590 : 640; // Adjust for author presence
         $startY = $baseY - ($totalHeight / 2);
 
         $yPos = 0;
-        
+
         // Render each line with proper spacing
         foreach ($lines as $i => $line) {
             $yPos = $startY + ($i * $contentFontSize * $lineHeight);
-            
-            $image->text($line, 540, $yPos, function($font) use ($contentFontSize) {
+
+            $image->text($line, 540, $yPos, function ($font) use ($contentFontSize) {
                 $font->filename(public_path('fonts/sansSerif.ttf'));
                 $font->size($contentFontSize);
                 $font->color('#FFFFFF');

@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('content');
             $table->string('image_content')->nullable();
             $table->string('image_author')->nullable();
+            $table->string('image_path')->nullable();
             $table->enum('status', PostStatus::values())
                 ->default(PostStatus::DRAFT->value)
                 ->index();

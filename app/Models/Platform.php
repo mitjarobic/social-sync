@@ -6,8 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class Platform extends Model
 {
-    protected $fillable = ['label', 'provider', 'external_id', 'external_name', 'external_url', 'external_token'];
-    
+    protected $fillable = [
+        'label',
+        'provider',
+        'external_id',
+        'external_name',
+        'external_url',
+        'external_token',
+        'external_picture_url'
+    ];
+
     // Relationship to the Company model
     public function company()
     {

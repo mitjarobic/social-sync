@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Company\Resources\PlatformResource\Pages;
 use App\Filament\Company\Resources\PlatformResource\RelationManagers;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 
@@ -37,39 +38,56 @@ class PlatformResource extends Resource
                                 'x' => 'X (Twitter)',
                             ])
                             ->required()
-                            ->reactive(),
+                            ->live()
+                            ->afterStateUpdated(function (Set $set, Select $component) {
+                                $set('external_id', null);
+                                $set('external_name', null);
+                                $set('label', null);
+                                $set('external_url', null);
+                                $set('external_token', null);
+
+
+
+                                //Fire the afterStateUpdated event on the external_id select component
+                                // This is a workaround to trigger the state update on the select component
+
+                                $select = $component->getContainer()->getComponent('external_id');
+                                $select->state(array_key_first($select->getOptions()))
+                                    ->callAfterStateUpdated();
+                            }),
                         Forms\Components\Select::make('external_id')
                             ->label('Page / Account')
                             ->options(fn(Get $get) => match ($get('provider')) {
                                 'facebook' => app(\App\Services\FacebookService::class)->listPages(),
+                                'instagram' => app(\App\Services\InstagramService::class)->listAccounts(),
+                                'x' => app(\App\Services\XService::class)->listAccounts(),
                                 default => [],
                             })
                             ->selectablePlaceholder(false)
-                            ->placeholder('Select a page or account')
-                            ->loadingMessage('Loading pages or accounts ...')
                             ->required()
-                            ->reactive()
-                            ->afterStateUpdated(fn($state, Set $set, Get $get) => match ($get('provider')) {
-                                'facebook' => app(\App\Services\FacebookService::class)->fillPageDetails($state, $set),
-                                default => null,
-                            }),
+                            ->live()
+                            ->key('external_id')
+                            ->afterStateUpdated(function ($state, Set $set, Get $get,) {
+                                match ($get('provider')) {
+                                    'facebook' => app(\App\Services\FacebookService::class)->fillPageDetails($state, $set),
+                                    'instagram' => app(\App\Services\InstagramService::class)->fillAccountDetails($state, $set),
+                                    'x' => app(\App\Services\XService::class)->fillAccountDetails($state, $set),
+                                    default => null,
+                                };
+                            })
+                            ->disabled(fn (Get $get): bool => blank($get('provider')))
+                            ->dehydrated(fn (Get $get): bool => filled($get('provider'))),
                         Forms\Components\TextInput::make('label')
                             ->required()
                             ->unique(ignoreRecord: true)
-                            ->label('Label'),
-                        Forms\Components\TextInput::make('external_name')
-                            ->label('External Name')
-                            ->disabled()
-                            ->dehydrated(),
-
-                        Forms\Components\TextInput::make('external_url')
-                            ->label('External URL')
-                            ->disabled()
-                            ->dehydrated(),
-
-                        Forms\Components\Hidden::make('external_token'), // storing access token
-
-                    ])->columns(1)->maxWidth('lg'),
+                            ->label('Label')
+                            ->disabled(fn (Get $get): bool => blank($get('provider')))
+                            ->dehydrated(fn (Get $get): bool => filled($get('provider'))),
+                        Forms\Components\Hidden::make('external_name'),
+                        Forms\Components\Hidden::make('external_url'),
+                        Forms\Components\Hidden::make('external_token'), 
+                        Forms\Components\Hidden::make('external_picture_url'),
+                    ])->columns(1)->maxWidth('lg'),      
             ]);
     }
 
@@ -77,6 +95,10 @@ class PlatformResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('external_picture_url')
+                    ->label('')
+                    ->size(30)
+                    ->circular(),
                 Tables\Columns\TextColumn::make('label')
                     ->label('Label')
                     ->sortable()
