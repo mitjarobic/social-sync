@@ -27,4 +27,9 @@ class ImageStore
     {
         return asset("storage/{$path}");
     }  
+
+    public static function path(string $path): string
+    {
+        return Storage::disk('public')->path($path);
+    }  
 }

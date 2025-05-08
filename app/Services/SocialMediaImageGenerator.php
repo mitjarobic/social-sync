@@ -9,19 +9,39 @@ use Intervention\Image\Drivers\Gd\Driver;
 class SocialMediaImageGenerator
 {
 
-    public static function generate(string $content, ?string $author = null): string
+    public static function generate(string $content, ?string $author = null, array $options = []): string
     {
         $manager = new ImageManager(new Driver());
 
-        $image = $manager->create(1080, 1080)->fill('#000000');
+        // Extract options with defaults
+        $contentFontSize = $options['fontSize'] ?? 112;
+        $authorFontSize = intval($contentFontSize * 0.7); // Author font is 70% of content font size
+        $fontColor = $options['fontColor'] ?? '#FFFFFF';
+        $bgColor = $options['bgColor'] ?? '#000000';
+        $bgImagePath = $options['bgImagePath'] ?? null;
+        $lineHeight = $options['extraOptions']['lineHeight'] ?? 1.4;
+        $maxWidth = $options['extraOptions']['maxWidth'] ?? 20; // Characters per line
 
-        $contentFontSize = 112;
-        $authorFontSize = 80;
-        $lineHeight = 1.4;
+        // Create base image with background color
+        $image = $manager->create(1080, 1080)->fill($bgColor);
 
-        $yAxis = $author ? 480 : 540; // Adjust Y-axis based on author presence
+        // Add background image if provided
+        if (!empty($bgImagePath)) {
+            try {
+                $bgImage = $manager->read($bgImagePath);
 
-        $maxWidth = 20; // Characters per line
+                // Resize and crop background image to fit 1080x1080
+                $bgImage->cover(1080, 1080);
+
+                // Apply a slight darkening effect to ensure text is readable
+                $bgImage->brightness(-10);
+
+                // Overlay the background image
+                $image->place($bgImage);
+            } catch (\Exception $e) {
+                error_log('Error processing background image: ' . $e->getMessage());
+            }
+        }
 
         // Calculate text positioning
         $wrappedText = wordwrap($content, $maxWidth, "\n");
@@ -38,20 +58,20 @@ class SocialMediaImageGenerator
         foreach ($lines as $i => $line) {
             $yPos = $startY + ($i * $contentFontSize * $lineHeight);
 
-            $image->text($line, 540, $yPos, function ($font) use ($contentFontSize) {
-                $font->filename(public_path('fonts/sansSerif.ttf'));
+            $image->text($line, 540, $yPos, function ($font) use ($contentFontSize, $fontColor, $options) {
+                $font->filename(public_path('fonts/' . ($options['font'] ?? 'sansSerif.ttf')));
                 $font->size($contentFontSize);
-                $font->color('#FFFFFF');
+                $font->color($fontColor);
                 $font->align('center');
             });
         }
 
         // Add author if exists
         if ($author) {
-            $image->text("— " . $author, 540, $yPos + 140, function ($font) use ($authorFontSize) {
-                $font->filename(public_path('fonts/sansSerif.ttf'));
+            $image->text("— " . $author, 540, $yPos + 140, function ($font) use ($authorFontSize, $fontColor, $options) {
+                $font->filename(public_path('fonts/' . ($options['font'] ?? 'sansSerif.ttf')));
                 $font->size($authorFontSize);
-                $font->color('#FFFFFF');
+                $font->color($fontColor);
                 $font->align('center');
             });
         }

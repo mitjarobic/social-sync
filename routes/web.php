@@ -10,13 +10,27 @@ Route::get('/', function () {
 
 Route::get('/generate-image', function (Request $request) {
     try {
+        // Build options array from request parameters
+        $options = [
+            'font' => $request->input('font', 'sansSerif.ttf'),
+            'fontSize' => (int) $request->input('fontSize', 112),
+            'fontColor' => $request->input('fontColor', '#FFFFFF'),
+            'bgColor' => $request->input('bgColor', '#000000'),
+            'bgImagePath' => $request->input('bgImagePath'),
+            'extraOptions' => [
+                'lineHeight' => (float) $request->input('lineHeight', 1.4),
+                'maxWidth' => (int) $request->input('maxWidth', 20),
+            ],
+        ];
+
         return response(
             app(SocialMediaImageGenerator::class)->generate(
                 $request->input('content', 'Default Content'),
-                $request->input('author', 'Author')
+                $request->input('author', 'Author'),
+                $options
             )
         )->header('Content-Type', 'image/jpeg');
-        
+
     } catch (\Exception $e) {
         return response("Failed to generate image: " . $e->getMessage(), 500);
     }
@@ -33,6 +47,5 @@ Route::get('/debug-preview', function () {
 Route::get('/privacy', function () {
    return "Privacy Policy";
 });
-
 
 

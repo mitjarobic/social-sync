@@ -18,11 +18,18 @@ class Post extends Model
         'image_content',
         'image_author',
         'image_path',
+        'image_font',
+        'image_font_size',
+        'image_font_color',
+        'image_bg_color',
+        'image_bg_image_path',
+        'image_options',
         'status'
     ];
 
     protected $casts = [
-        'status' => PostStatus::class
+        'status' => PostStatus::class,
+        'image_options' => 'array'
     ];
 
     // Relationship to the Company model
@@ -72,15 +79,32 @@ class Post extends Model
     public function createOrUpdateImage()
     {
         if ($this->image_content) {
-            $filename =  $this->image_path ?? 'posts/' . now()->timestamp . '.jpg';
-            $jpegData = SocialMediaImageGenerator::generate($this->image_content, $this->image_author);
+            $filename = $this->image_path ?? 'posts/' . now()->timestamp . '.jpg';
+
+            // Prepare options for image generation
+            $options = [
+                'font' => $this->image_font ?? 'sansSerif.ttf',
+                'fontSize' => $this->image_font_size ?? 112,
+                'fontColor' => $this->image_font_color ?? '#FFFFFF',
+                'bgColor' => $this->image_bg_color ?? '#000000',
+                'bgImagePath' => $this->getBackgroundImagePath(),
+                'extraOptions' => $this->image_options ?? [],
+            ];
+
+            $jpegData = SocialMediaImageGenerator::generate(
+                $this->image_content,
+                $this->image_author,
+                $options
+            );
+
             $this->image_path = ImageStore::save($filename, $jpegData);
             $this->save();
         }
     }
-           
+
     public function getImageUrlAttribute()
     {
         return \App\Support\ImageStore::url($this->image_path);
     }
+
 }

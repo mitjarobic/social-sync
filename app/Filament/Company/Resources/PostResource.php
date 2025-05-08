@@ -5,19 +5,19 @@ namespace App\Filament\Company\Resources;
 use Filament\Forms;
 use App\Models\Post;
 use Filament\Tables;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use App\Models\Platform;
 use Filament\Forms\Form;
 use App\Enums\PostStatus;
 use Filament\Tables\Table;
+use App\Support\ImageStore;
 use Illuminate\Support\Str;
-use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
-use Livewire\Attributes\Reactive;
 use Illuminate\Support\HtmlString;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 use App\Filament\Company\Resources\PostResource\Pages;
-use App\Filament\Company\Resources\PostResource\RelationManagers;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use App\Filament\Company\Resources\PlatformPostRelationManagerResource\RelationManagers\PlatformPostsRelationManager;
 
 class PostResource extends Resource
@@ -47,10 +47,10 @@ class PostResource extends Resource
                                     ])
                                     ->schema([
                                         Forms\Components\TextInput::make('company_id')
-                                            ->default(auth()->user()->currentCompany->id)
+                                            ->default(Auth::user()->currentCompany->id)
                                             ->dehydrated(true),
                                         Forms\Components\Select::make('platform_id') // platform_id
-                                            ->options(function (callable $get, callable $set, $state, $livewire) {
+                                            ->options(function (callable $get, $state) {
                                                 // Get all repeater items
                                                 // Access parent repeater state
                                                 $rootState = $get('../');
@@ -72,15 +72,12 @@ class PostResource extends Resource
                                             ->label('Platform')
                                             ->live() // Add live() to ensure real-time updates
 
-                                            ->afterStateUpdated(function (?string $state, ?string $old, callable $set, callable $get) {
-                                                // Trigger Livewire update without resetting values
-                                                // $set('../../refresh_key', now()->timestamp);
+                                            ->afterStateUpdated(function (?string $state, callable $get) {
                                                 // Debug to multiple channels
                                                 debug($state, $get('../../postPlatforms')); // Laravel Debugbar
                                             }),
                                         Forms\Components\DateTimePicker::make('scheduled_at')
-                                            ->label('Scheduled At')
-                                            ->required(),
+                                            ->label('Scheduled At'),
                                     ])
                                     ->label('Scheduled Platforms')
                                     ->columns(2)
@@ -125,17 +122,90 @@ class PostResource extends Resource
                                         $set('preview_version', now()->timestamp);
                                     })
                                     ->label('Author'),
-                                // Forms\Components\TextInput::make('preview_version')
-                                //     ->hidden()
-                                //     ->default(now()->timestamp),
+                                Forms\Components\TextInput::make('preview_version')
+                                    ->hidden()
+                                    ->default(now()->timestamp),
+
+                                // Font customization
+                                Forms\Components\Select::make('image_font')
+                                    ->label('Font')
+                                    ->options([
+                                        'sansSerif.ttf' => 'Sans Serif',
+                                        'roboto.ttf' => 'Roboto',                           
+                                    ])
+                                    ->default('sansSerif.ttf')
+                                    ->live(debounce: 500)
+                                    ->afterStateUpdated(function ($set) {
+                                        $set('preview_version', now()->timestamp);
+                                    }),
+
+                                Forms\Components\TextInput::make('image_font_size')
+                                    ->label('Font Size')
+                                    ->type('number')
+                                    ->default(112)
+                                    ->live(debounce: 500)
+                                    ->afterStateUpdated(function ($set) {
+                                        $set('preview_version', now()->timestamp);
+                                    }),
+
+                                Forms\Components\ColorPicker::make('image_font_color')
+                                    ->label('Font Color')
+                                    ->default('#FFFFFF')
+                                    ->live(debounce: 500)
+                                    ->afterStateUpdated(function ($set) {
+                                        $set('preview_version', now()->timestamp);
+                                    }),
+
+                                Forms\Components\ColorPicker::make('image_bg_color')
+                                    ->label('Background Color')
+                                    ->default('#000000')
+                                    ->live(debounce: 500)
+                                    ->afterStateUpdated(function ($set) {
+                                        $set('preview_version', now()->timestamp);
+                                    }),
+
+                                Forms\Components\FileUpload::make('image_bg_image_path')
+                                    ->label('Background Image')
+                                    ->directory('backgrounds')
+                                    ->image()
+                                    ->imageResizeMode('cover')
+                                    ->imageCropAspectRatio('1:1')
+                                    ->imageResizeTargetWidth('1080')
+                                    ->imageResizeTargetHeight('1080')
+                                    ->disk('public')
+                                    ->visibility('public')
+                                    ->maxFiles(1)
+                                    ->downloadable()
+                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/gif'])
+                                    ->live(debounce: 500)
+                                    ->helperText('Upload a background image (1080x1080 recommended)')
+                                    ->afterStateUpdated(function (Set $set) {
+                                        $set('preview_version', now()->timestamp);
+                                    }),
+
                                 Forms\Components\Placeholder::make('preview')
                                     ->label('Image Preview')
-                                    ->content(function ($get) {
+                                    ->content(function (Get $get) {
+
+                                        $bgImagePath = $get('image_bg_image_path');
+
+                                        // If it's an array (from FileUpload), get the first element
+                                        if (is_array($bgImagePath) && !empty($bgImagePath)) {
+                                            $bgImagePath = reset($bgImagePath);
+                                            $bgImagePath = $bgImagePath instanceof TemporaryUploadedFile ? $bgImagePath->getPathName() : ImageStore::path($bgImagePath);
+                                        }
+
+
                                         return new HtmlString(
                                             view('filament.custom.social-preview', [
                                                 'content' => $get('image_content'),
                                                 'author' => $get('image_author'),
-                                                'version' => 1,
+                                                'font' => $get('image_font'),
+                                                'fontSize' => $get('image_font_size'),
+                                                'fontColor' => $get('image_font_color'),
+                                                'bgColor' => $get('image_bg_color'),
+                                                'bgImagePath' => $bgImagePath,
+                                                'version' => $get('preview_version'),
                                             ])->render()
                                         );
                                     }),
@@ -152,7 +222,7 @@ class PostResource extends Resource
                 Tables\Columns\TextColumn::make('content')->limit(50),
                 Tables\Columns\TextColumn::make('platformPosts.platform.name')
                     ->label('Platforms')
-                    ->formatStateUsing(function ($state, Post $record) {
+                    ->formatStateUsing(function (Post $record) {
                         return $record->platformPosts
                             ->pluck('platform.name')
                             ->unique()
