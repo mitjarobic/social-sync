@@ -36,14 +36,6 @@ Route::get('/generate-image', function (Request $request) {
     }
 });
 
-Route::get('/debug-preview', function () {
-    return view('filament.custom.social-preview', [
-        'content' => 'Test Content',
-        'author' => 'Test Author',
-        'version' => 1
-    ]);
-});
-
 Route::get('/privacy', function () {
    return "Privacy Policy";
 });

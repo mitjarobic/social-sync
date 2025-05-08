@@ -19,21 +19,28 @@ class PostToX implements ShouldQueue
     public function handle(XService $service)
     {
         try {
-            $response = $service->post(
+            $imageUrl = $this->platformPost->post->image_path
+                ? \App\Support\DevHelper::withNgrokUrl(\App\Support\ImageStore::url($this->platformPost->post->image_path))
+                : null;
+
+            $result = $service->post(
+                $this->platformPost->platform->external_id,
+                $this->platformPost->platform->external_token,
                 $this->platformPost->post->content,
-                $this->platformPost->post->image_url
+                $imageUrl
             );
 
             $this->platformPost->update([
-                'status' => 'published',
-                'external_id' => $response['id'],
+                'status' => \App\Enums\PlatformPostStatus::PUBLISHED,
+                'external_id' => $result['response']['id'],
+                'external_url' => $result['url'],
                 'posted_at' => now(),
-                'metadata' => $response
+                'metadata' => $result['response']
             ]);
 
         } catch (\Exception $e) {
             $this->platformPost->update([
-                'status' => 'failed',
+                'status' => \App\Enums\PlatformPostStatus::FAILED,
                 'metadata' => ['error' => $e->getMessage()]
             ]);
         }
