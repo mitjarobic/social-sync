@@ -26,10 +26,26 @@ class ImageStore
     public static function url(string $path): string
     {
         return asset("storage/{$path}");
-    }  
+    }
 
     public static function path(string $path): string
     {
         return Storage::disk('public')->path($path);
-    }  
+    }
+
+    public static function getBody(string $url): string
+    {
+        return Http::get($url)->body();
+    }
+
+    public static function savePlatformPhoto(string $platform, string $platformId, string $imageUrl): string
+    {
+        $imageContents = ImageStore::getBody($imageUrl);
+
+        $filename = $platform . '_' . $platformId . '.jpg';
+        $storagePath = 'platform_pics/' . $filename;
+
+        ImageStore::save($storagePath, $imageContents);
+        return ImageStore::url($storagePath);
+    }
 }

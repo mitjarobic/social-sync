@@ -2,9 +2,10 @@
 
 namespace App\Services;
 
-use Barryvdh\Debugbar\Facades\Debugbar;
 use Filament\Forms\Set;
+use App\Support\ImageStore;
 use JanuSoftware\Facebook\Facebook;
+use Barryvdh\Debugbar\Facades\Debugbar;
 
 class FacebookService
 {
@@ -48,7 +49,8 @@ class FacebookService
             $set('label', $page['name']);
             $set('external_name', $page['name']);
             $set('external_url', "https://facebook.com/{$page['id']}");
-            $set('external_picture_url', $page['picture']['data']['url'] ?? null);
+            $imageUrl = ImageStore::savePlatformPhoto('instagram', $pageId, $page['picture']['data']['url'] );
+            $set('external_picture_url', $imageUrl);
             $set('external_token', $page['access_token'] ?? null);
         }
     }

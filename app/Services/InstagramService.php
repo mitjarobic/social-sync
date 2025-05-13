@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\ImageStore;
 use Filament\Forms\Set;
 use JanuSoftware\Facebook\Facebook;
 
@@ -74,7 +75,9 @@ class InstagramService
                 $set('label', $account['name']);
                 $set('external_name', $account['name']);
                 $set('external_url', "https://instagram.com/{$account['username']}");
-                $set('external_picture_url', $account['profile_picture_url'] ?? null);
+                $imageUrl = ImageStore::savePlatformPhoto('instagram', $instagramId, $account['profile_picture_url']);
+                $set('external_picture_url', $imageUrl);
+             
             }
         } catch (\Throwable $e) {
             throw new \Exception("Failed to fetch Instagram account details: " . $e->getMessage());
