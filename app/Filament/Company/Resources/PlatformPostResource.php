@@ -2,17 +2,14 @@
 
 namespace App\Filament\Company\Resources;
 
-use Filament\Forms;
-use Filament\Tables;
-use Filament\Forms\Form;
-use Filament\Tables\Table;
+use App\Filament\Company\Resources\Schemas\PlatformPostSchema;
 use App\Models\PlatformPost;
+use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Illuminate\Database\Eloquent\Builder;
-use App\Filament\Schemas\PlatformPostSchema;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Tables\Table;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\BulkActionGroup;
 use App\Filament\Company\Resources\PlatformPostResource\Pages;
-use App\Filament\Company\Resources\PlatformPostResource\RelationManagers;
 
 class PlatformPostResource extends Resource
 {
@@ -33,10 +30,10 @@ class PlatformPostResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                EditAction::make(),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
+                BulkActionGroup::make([
                     //
                 ]),
             ]);

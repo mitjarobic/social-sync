@@ -8,9 +8,6 @@
         </div>
         <div class="ml-3 flex-1">
             <div class="flex items-center">
-                <div class="w-10 h-10 rounded-full overflow-hidden">
-                    <img src="https://via.placeholder.com/40x40" alt="Profile" class="w-full h-full object-cover">
-                </div>
                 <div class="font-bold text-sm text-gray-500">Earth Air Intuitive</div>
                 <div class="ml-1 text-gray-500 text-sm">@earthairintuitive</div>
                 <div class="ml-1 text-gray-500">·</div>
@@ -24,13 +21,13 @@
 
             <!-- Post content -->
             <div class="text-sm mt-1">
-                {{ $content }}
+                {{ $content ?? '' }}
             </div>
 
             <!-- Image -->
             <div class="mt-3 rounded-xl overflow-hidden">
                 <img
-                    src="/generate-image?content={{ urlencode($imageContent) }}&author={{ urlencode($author) }}&font={{ $font ?? 'sansSerif.ttf' }}&fontSize={{ $fontSize ?? 112 }}&fontColor={{ urlencode($fontColor ?? '#FFFFFF') }}&bgColor={{ urlencode($bgColor ?? '#000000') }}&bgImagePath={{ urlencode($bgImagePath) }}&v={{ $version }}"
+                    src="/generate-image?content={{ urlencode($imageContent ?? '') }}&author={{ urlencode($author ?? '') }}&font={{ $font ?? 'sansSerif.ttf' }}&fontSize={{ $fontSize ?? 112 }}&fontColor={{ urlencode($fontColor ?? '#FFFFFF') }}&bgColor={{ urlencode($bgColor ?? '#000000') }}&bgImagePath={{ urlencode($bgImagePath ?? '') }}&v={{ $version ?? time() }}"
                     class="w-full object-cover"
                     wire:loading.class="opacity-50"
                 >

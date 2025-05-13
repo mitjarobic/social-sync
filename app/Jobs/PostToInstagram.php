@@ -36,6 +36,11 @@ class PostToInstagram implements ShouldQueue
                 'external_url' => $result['url'],
                 'posted_at' => now(),
                 'metadata' => $result['response'],
+                'reach' => 0,
+                'likes' => 0,
+                'comments' => 0,
+                'shares' => 0,
+                'metrics_updated_at' => now(),
             ]);
         } catch (\Exception $e) {
             $this->platformPost->update([

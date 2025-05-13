@@ -15,7 +15,7 @@
     <!-- Image -->
     <div>
         <img
-            src="/generate-image?content={{ urlencode($imageContent) }}&author={{ urlencode($author) }}&font={{ $font ?? 'sansSerif.ttf' }}&fontSize={{ $fontSize ?? 112 }}&fontColor={{ urlencode($fontColor ?? '#FFFFFF') }}&bgColor={{ urlencode($bgColor ?? '#000000') }}&bgImagePath={{ urlencode($bgImagePath) }}&v={{ $version }}"
+            src="/generate-image?content={{ urlencode($imageContent ?? '') }}&author={{ urlencode($author ?? '') }}&font={{ $font ?? 'sansSerif.ttf' }}&fontSize={{ $fontSize ?? 112 }}&fontColor={{ urlencode($fontColor ?? '#FFFFFF') }}&bgColor={{ urlencode($bgColor ?? '#000000') }}&bgImagePath={{ urlencode($bgImagePath ?? '') }}&v={{ $version ?? time() }}"
             class="w-full aspect-square object-cover"
             wire:loading.class="opacity-50"
         >
@@ -41,6 +41,6 @@
 
     <!-- Caption -->
     <div class="px-3 pb-3 text-sm text-gray-500">
-        <span class="font-semibold">earthairintuitive</span> {{ $content }}
+        <span class="font-semibold">earthairintuitive</span> {{ $content ?? '' }}
     </div>
 </div>

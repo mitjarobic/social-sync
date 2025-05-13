@@ -58,7 +58,17 @@ class PostResource extends Resource
                                             ->enum(PostStatus::class)
                                             ->default(PostStatus::DRAFT->value)
                                             ->required()
-                                            ->label('Status'),
+                                            ->label('Status')
+                                            ->live()
+                                            ->afterStateUpdated(function (Set $set, $state) {
+                                                // Update all platformPosts status based on post status
+                                                $platformPostStatus = $state === PostStatus::SCHEDULED->value
+                                                    ? 'queued'
+                                                    : 'draft';
+
+                                                // This will update the hidden status field in each platformPost
+                                                $set('platformPosts.*.status', $platformPostStatus);
+                                            }),
 
                                         Forms\Components\View::make('platform_status')
                                             ->view('filament.components.posts.platform-status')
@@ -76,14 +86,9 @@ class PostResource extends Resource
                                     ->schema([
                                         Forms\Components\Repeater::make('platformPosts')
                                             ->relationship()
-                                            ->default([
-                                                ['status' => 'draft'] // Auto-set for new items
-                                            ])
                                             ->schema([
-                                                Forms\Components\TextInput::make('company_id')
-                                                    ->default(Auth::user()->currentCompany->id)
-                                                    ->dehydrated(true)
-                                                    ->hidden(),
+                                                Forms\Components\Hidden::make('company_id')
+                                                    ->default(Auth::user()->currentCompany->id),
                                                 Forms\Components\Select::make('platform_id')
                                                     ->options(function (callable $get, $state) {
                                                         // Get all repeater items
@@ -105,11 +110,21 @@ class PostResource extends Resource
                                                     ->reactive()
                                                     ->label('Platform')
                                                     ->live()
+                                                    ->required()
                                                     ->afterStateUpdated(function (?string $state, callable $get) {
                                                         debug($state, $get('../../postPlatforms'));
                                                     }),
                                                 Forms\Components\DateTimePicker::make('scheduled_at')
+                                                    ->required()
                                                     ->label('Scheduled At'),
+
+                                                Forms\Components\TextInput::make('status')
+                                                    ->default(function (Get $get) {
+                                                        $postStatus = $get('../../status');
+                                                        return $postStatus === PostStatus::SCHEDULED->value
+                                                            ? 'queued'
+                                                            : 'draft';
+                                                    })                                                   
                                             ])
                                             ->label('Scheduled Platforms')
                                             ->columns(2)
@@ -226,101 +241,110 @@ class PostResource extends Resource
                             ->columnSpan(1),
 
 
-                      
-                                Forms\Components\Tabs::make('Platform Previews')
-                                    ->tabs([
-                                        // Facebook Preview Tab
-                                        Forms\Components\Tabs\Tab::make('Facebook')
-                                            ->schema([
-                                                Forms\Components\Placeholder::make('facebook_preview')
-                                                    ->content(function (Get $get) {
-                                                        $bgImagePath = $get('image_bg_image_path');
 
-                                                        // If it's an array (from FileUpload), get the first element
-                                                        if (is_array($bgImagePath) && !empty($bgImagePath)) {
-                                                            $bgImagePath = reset($bgImagePath);
-                                                            $bgImagePath = $bgImagePath instanceof TemporaryUploadedFile ? $bgImagePath->getPathName() : ImageStore::path($bgImagePath);
-                                                        }
+                        Forms\Components\Tabs::make('Platform Previews')
+                            ->tabs([
+                                // Facebook Preview Tab
+                                Forms\Components\Tabs\Tab::make('Facebook')
+                                    ->schema([
+                                        Forms\Components\Placeholder::make('facebook_preview')
+                                            ->content(function (Get $get) {
+                                                $bgImagePath = $get('image_bg_image_path');
 
-                                                        return new HtmlString(
-                                                            view('filament.custom.platform-previews.facebook-preview', [
-                                                                'content' => $get('content'),
-                                                                'imageContent' => $get('image_content'),
-                                                                'author' => $get('image_author'),
-                                                                'font' => $get('image_font'),
-                                                                'fontSize' => $get('image_font_size'),
-                                                                'fontColor' => $get('image_font_color'),
-                                                                'bgColor' => $get('image_bg_color'),
-                                                                'bgImagePath' => $bgImagePath,
-                                                                'version' => $get('preview_version'),
-                                                            ])->render()
-                                                        );
-                                                    })
-                                                    ->columnSpanFull(),
-                                            ]),
+                                                // If it's an array (from FileUpload), get the first element
+                                                if (is_array($bgImagePath) && !empty($bgImagePath)) {
+                                                    $bgImagePath = reset($bgImagePath);
+                                                    $bgImagePath = $bgImagePath instanceof TemporaryUploadedFile ? $bgImagePath->getPathName() : ImageStore::path($bgImagePath);
+                                                } else {
+                                                    $bgImagePath = null;
+                                                }
 
-                                        // Instagram Preview Tab
-                                        Forms\Components\Tabs\Tab::make('Instagram')
-                                            ->schema([
-                                                Forms\Components\Placeholder::make('instagram_preview')
-                                                    ->content(function (Get $get) {
-                                                        $bgImagePath = $get('image_bg_image_path');
+                                                return new HtmlString(
+                                                    view(
+                                                        'filament.custom.platform-previews.facebook-preview',
+                                                        [
+                                                            'content' => $get('content'),
+                                                            'imageContent' => $get('image_content'),
+                                                            'author' => $get('image_author'),
+                                                            'font' => $get('image_font'),
+                                                            'fontSize' => $get('image_font_size'),
+                                                            'fontColor' => $get('image_font_color'),
+                                                            'bgColor' => $get('image_bg_color'),
+                                                            'bgImagePath' => $bgImagePath,
+                                                            'version' => $get('preview_version'),
+                                                        ]
+                                                    )->render()
+                                                );
+                                            })
+                                            ->columnSpanFull(),
+                                    ]),
 
-                                                        // If it's an array (from FileUpload), get the first element
-                                                        if (is_array($bgImagePath) && !empty($bgImagePath)) {
-                                                            $bgImagePath = reset($bgImagePath);
-                                                            $bgImagePath = $bgImagePath instanceof TemporaryUploadedFile ? $bgImagePath->getPathName() : ImageStore::path($bgImagePath);
-                                                        }
+                                // Instagram Preview Tab
+                                Forms\Components\Tabs\Tab::make('Instagram')
+                                    ->schema([
+                                        Forms\Components\Placeholder::make('instagram_preview')
+                                            ->content(function (Get $get) {
+                                                $bgImagePath = $get('image_bg_image_path');
 
-                                                        return new HtmlString(
-                                                            view('filament.custom.platform-previews.instagram-preview', [
-                                                                'content' => $get('content'),
-                                                                'imageContent' => $get('image_content'),
-                                                                'author' => $get('image_author'),
-                                                                'font' => $get('image_font'),
-                                                                'fontSize' => $get('image_font_size'),
-                                                                'fontColor' => $get('image_font_color'),
-                                                                'bgColor' => $get('image_bg_color'),
-                                                                'bgImagePath' => $bgImagePath,
-                                                                'version' => $get('preview_version'),
-                                                            ])->render()
-                                                        );
-                                                    })
-                                                    ->columnSpanFull(),
-                                            ]),
+                                                // If it's an array (from FileUpload), get the first element
+                                                if (is_array($bgImagePath) && !empty($bgImagePath)) {
+                                                    $bgImagePath = reset($bgImagePath);
+                                                    $bgImagePath = $bgImagePath instanceof TemporaryUploadedFile ? $bgImagePath->getPathName() : ImageStore::path($bgImagePath);
+                                                } else {
+                                                    $bgImagePath = null;
+                                                }
 
-                                        // X Preview Tab
-                                        Forms\Components\Tabs\Tab::make('X')
-                                            ->schema([
-                                                Forms\Components\Placeholder::make('x_preview')
-                                                    ->content(function (Get $get) {
-                                                        $bgImagePath = $get('image_bg_image_path');
+                                                return new HtmlString(
+                                                    view('filament.custom.platform-previews.instagram-preview', [
+                                                        'content' => $get('content'),
+                                                        'imageContent' => $get('image_content'),
+                                                        'author' => $get('image_author'),
+                                                        'font' => $get('image_font'),
+                                                        'fontSize' => $get('image_font_size'),
+                                                        'fontColor' => $get('image_font_color'),
+                                                        'bgColor' => $get('image_bg_color'),
+                                                        'bgImagePath' => $bgImagePath,
+                                                        'version' => $get('preview_version'),
+                                                    ])->render()
+                                                );
+                                            })
+                                            ->columnSpanFull(),
+                                    ]),
 
-                                                        // If it's an array (from FileUpload), get the first element
-                                                        if (is_array($bgImagePath) && !empty($bgImagePath)) {
-                                                            $bgImagePath = reset($bgImagePath);
-                                                            $bgImagePath = $bgImagePath instanceof TemporaryUploadedFile ? $bgImagePath->getPathName() : ImageStore::path($bgImagePath);
-                                                        }
+                                // X Preview Tab
+                                Forms\Components\Tabs\Tab::make('X')
+                                    ->schema([
+                                        Forms\Components\Placeholder::make('x_preview')
+                                            ->content(function (Get $get) {
+                                                $bgImagePath = $get('image_bg_image_path');
 
-                                                        return new HtmlString(
-                                                            view('filament.custom.platform-previews.x-preview', [
-                                                                'content' => $get('content'),
-                                                                'imageContent' => $get('image_content'),
-                                                                'author' => $get('image_author'),
-                                                                'font' => $get('image_font'),
-                                                                'fontSize' => $get('image_font_size'),
-                                                                'fontColor' => $get('image_font_color'),
-                                                                'bgColor' => $get('image_bg_color'),
-                                                                'bgImagePath' => $bgImagePath,
-                                                                'version' => $get('preview_version'),
-                                                            ])->render()
-                                                        );
-                                                    })
-                                                    ->columnSpanFull(),
-                                            ]),
-                                    ])
-                                    ->columnSpan(1),
-                            
+                                                // If it's an array (from FileUpload), get the first element
+                                                if (is_array($bgImagePath) && !empty($bgImagePath)) {
+                                                    $bgImagePath = reset($bgImagePath);
+                                                    $bgImagePath = $bgImagePath instanceof TemporaryUploadedFile ? $bgImagePath->getPathName() : ImageStore::path($bgImagePath);
+                                                } else {
+                                                    $bgImagePath = null;
+                                                }
+
+                                                return new HtmlString(
+                                                    view('filament.custom.platform-previews.x-preview', [
+                                                        'content' => $get('content'),
+                                                        'imageContent' => $get('image_content'),
+                                                        'author' => $get('image_author'),
+                                                        'font' => $get('image_font'),
+                                                        'fontSize' => $get('image_font_size'),
+                                                        'fontColor' => $get('image_font_color'),
+                                                        'bgColor' => $get('image_bg_color'),
+                                                        'bgImagePath' => $bgImagePath,
+                                                        'version' => $get('preview_version'),
+                                                    ])->render()
+                                                );
+                                            })
+                                            ->columnSpanFull(),
+                                    ]),
+                            ])
+                            ->columnSpan(1),
+
                     ]),
             ]);
     }
@@ -378,7 +402,7 @@ class PostResource extends Resource
                     })
                     ->visible(
                         fn(Post $record) =>
-                        $record->status === \App\Enums\PostStatus::DRAFT
+                        $record->status === \App\Enums\PostStatus::SCHEDULED
                     )
             ])
             ->bulkActions([

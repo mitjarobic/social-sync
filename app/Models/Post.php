@@ -45,6 +45,18 @@ class Post extends Model
 
     protected static function booted()
     {
+        // // Handle both created and updated events
+        // static::created(function ($post) {
+        //     // When a post is created with SCHEDULED status, queue all platform posts
+        //     if ($post->status === \App\Enums\PostStatus::SCHEDULED) {
+        //         $post->platformPosts()
+        //             ->where('status', \App\Enums\PlatformPostStatus::DRAFT)
+        //             ->update(['status' => \App\Enums\PlatformPostStatus::QUEUED]);
+        //     }
+
+        //     $post->createOrUpdateImageIfNecessary();
+        // });
+
         static::updated(function ($post) {
             // When post is published, queue all platform posts
             if ($post->status === \App\Enums\PostStatus::PUBLISHING) {
@@ -61,7 +73,7 @@ class Post extends Model
                     ->update(['status' => \App\Enums\PlatformPostStatus::QUEUED]);
             }
 
-            $post->createOrUpdateImage();
+            $post->createOrUpdateImageIfNecessary();
         });
     }
 
@@ -76,10 +88,20 @@ class Post extends Model
         // $this->save();
     }
 
-    public function createOrUpdateImage()
+    public function createOrUpdateImageIfNecessary()
     {
-        if ($this->image_content) {
-            $filename = $this->image_path ?? 'posts/' . now()->timestamp . '.jpg';
+
+        if ($this->isDirty('image_content') ||
+            $this->isDirty('image_author') ||
+            $this->isDirty('image_font') ||
+            $this->isDirty('image_font_size') ||
+            $this->isDirty('image_font_color') ||
+            $this->isDirty('image_bg_color') ||
+            $this->isDirty('image_bg_image_path') ||
+            $this->isDirty('image_options')
+        ) {
+
+            $this->image_path = $this->image_path ?? 'posts/' . now()->timestamp . '.jpg';
 
             // Prepare options for image generation
             $options = [
@@ -87,7 +109,7 @@ class Post extends Model
                 'fontSize' => $this->image_font_size ?? 112,
                 'fontColor' => $this->image_font_color ?? '#FFFFFF',
                 'bgColor' => $this->image_bg_color ?? '#000000',
-                'bgImagePath' => $this->getBackgroundImagePath(),
+                'bgImagePath' => $this->image_bg_image_path ?? null,
                 'extraOptions' => $this->image_options ?? [],
             ];
 
@@ -97,8 +119,8 @@ class Post extends Model
                 $options
             );
 
-            $this->image_path = ImageStore::save($filename, $jpegData);
-            $this->save();
+            ImageStore::save($this->image_path, $jpegData);
+            $this->saveQuietly();
         }
     }
 

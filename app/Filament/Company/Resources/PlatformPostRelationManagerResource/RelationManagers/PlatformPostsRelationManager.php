@@ -3,11 +3,11 @@
 namespace App\Filament\Company\Resources\PlatformPostRelationManagerResource\RelationManagers;
 
 
+use App\Filament\Company\Resources\Schemas\PlatformPostSchema;
 use Filament\Forms\Form;
-use Filament\Tables;
 use Filament\Tables\Table;
-use App\Filament\Schemas\PlatformPostSchema;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Resources\RelationManagers\RelationManager;
 
 class PlatformPostsRelationManager extends RelationManager
@@ -27,10 +27,10 @@ class PlatformPostsRelationManager extends RelationManager
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                EditAction::make(),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
+                BulkActionGroup::make([
                     //
                 ]),
             ]);

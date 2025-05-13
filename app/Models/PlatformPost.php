@@ -18,13 +18,21 @@ class PlatformPost extends Model
         'external_id',
         'external_url',
         'metadata',
+        'reach',
+        'likes',
+        'comments',
+        'shares',
+        'metrics_updated_at',
         'scheduled_at',
         'posted_at',
-
     ];
 
     protected $casts = [
-        'status' => PlatformPostStatus::class
+        'status' => PlatformPostStatus::class,
+        'metadata' => 'array',
+        'metrics_updated_at' => 'datetime',
+        'scheduled_at' => 'datetime',
+        'posted_at' => 'datetime',
     ];
 
     public function platform()

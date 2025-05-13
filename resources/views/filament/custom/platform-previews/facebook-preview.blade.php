@@ -21,13 +21,13 @@
 
     <!-- Post content -->
     <div class="px-3 pb-2 text-sm text-gray-500">
-        {{ $content }}
+        {{ $content ?? '' }}
     </div>
 
     <!-- Image -->
     <div>
         <img
-            src="/generate-image?content={{ urlencode($imageContent) }}&author={{ urlencode($author) }}&font={{ $font ?? 'sansSerif.ttf' }}&fontSize={{ $fontSize ?? 112 }}&fontColor={{ urlencode($fontColor ?? '#FFFFFF') }}&bgColor={{ urlencode($bgColor ?? '#000000') }}&bgImagePath={{ urlencode($bgImagePath) }}&v={{ $version }}"
+            src="/generate-image?content={{ urlencode($imageContent ?? '') }}&author={{ urlencode($author ?? '') }}&font={{ $font ?? 'sansSerif.ttf' }}&fontSize={{ $fontSize ?? 112 }}&fontColor={{ urlencode($fontColor ?? '#FFFFFF') }}&bgColor={{ urlencode($bgColor ?? '#000000') }}&bgImagePath={{ urlencode($bgImagePath ?? '') }}&v={{ $version ?? time() }}"
             class="w-full object-cover"
             wire:loading.class="opacity-50"
         >
