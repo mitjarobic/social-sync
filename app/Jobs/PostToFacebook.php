@@ -23,6 +23,10 @@ class PostToFacebook implements ShouldQueue
         try {
             $imageUrl = DevHelper::withNgrokUrl(ImageStore::url($this->platformPost->post->image_path));
 
+            if(!DevHelper::isImageAccessible($imageUrl)) {
+                throw new \Exception("Image URL is not accessible: {$imageUrl}");
+            }
+
             $result = $service->post(
                 $this->platformPost->platform->external_id,
                 $this->platformPost->platform->external_token,

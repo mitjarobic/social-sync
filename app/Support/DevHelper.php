@@ -14,10 +14,6 @@ class DevHelper
                 'https://superb-liked-newt.ngrok-free.app',
                 $url
             );
-
-            if(!self::isImageAccessible($url)) {
-                throw new \Exception("Image URL is not accessible: {$url}");
-            }
         }
 
         return $url;

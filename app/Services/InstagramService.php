@@ -26,10 +26,8 @@ class InstagramService
      */
     public function listAccounts(): array
     {
-        try {
-
-            $token = config('services.facebook.user_token'); // your long-lived user token
-
+        try {   
+            $token = auth()->user()->facebook_token;
             // First get all Facebook pages
             $pagesResponse = $this->fb->get('/me/accounts', $token);
 
@@ -62,12 +60,10 @@ class InstagramService
     public function fillAccountDetails(string $instagramId, Set $set): void
     {
         try {
-
-            $token = config('services.facebook.user_token'); // your long-lived user token
-
+            
             $response = $this->fb->get(
                 "/{$instagramId}?fields=id,name,username,profile_picture_url",
-                $token
+                auth()->user()->facebook_token
             );
 
             $account = $response->getDecodedBody();
@@ -78,7 +74,6 @@ class InstagramService
                 $set('external_url', "https://instagram.com/{$account['username']}");
                 $imageUrl = ImageStore::savePlatformPhoto('instagram', $instagramId, $account['profile_picture_url']);
                 $set('external_picture_url', $imageUrl);
-
             }
         } catch (\Throwable $e) {
             throw new \Exception("Failed to fetch Instagram account details: " . $e->getMessage());

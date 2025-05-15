@@ -2,40 +2,41 @@
 
 namespace App\Providers;
 
-use App\Actions\FilamentCompanies\AddCompanyEmployee;
-use App\Actions\FilamentCompanies\CreateNewUser;
-use App\Actions\FilamentCompanies\DeleteCompany;
-use App\Actions\FilamentCompanies\DeleteUser;
-use App\Actions\FilamentCompanies\InviteCompanyEmployee;
-use App\Actions\FilamentCompanies\RemoveCompanyEmployee;
-use App\Actions\FilamentCompanies\UpdateCompanyName;
-use App\Actions\FilamentCompanies\UpdateUserPassword;
-use App\Actions\FilamentCompanies\UpdateUserProfileInformation;
-use App\Models\Company;
-use Filament\Facades\Filament;
-use Filament\Http\Middleware\Authenticate;
-use Filament\Http\Middleware\DisableBladeIconComponents;
-use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Navigation\MenuItem;
 use Filament\Pages;
 use Filament\Panel;
-use Filament\PanelProvider;
-use Filament\Support\Colors\Color;
 use Filament\Widgets;
-use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use App\Models\Company;
+use Filament\PanelProvider;
+use Filament\Facades\Filament;
+use App\Livewire\ConnectFacebook;
+use Filament\Navigation\MenuItem;
+use Filament\Support\Colors\Color;
+use Illuminate\Support\Facades\Auth;
+use Filament\Http\Middleware\Authenticate;
+use App\Actions\FilamentCompanies\DeleteUser;
+use Wallo\FilamentCompanies\Pages\Auth\Login;
+use Wallo\FilamentCompanies\FilamentCompanies;
+use Illuminate\Session\Middleware\StartSession;
+use Wallo\FilamentCompanies\Pages\User\Profile;
+use App\Actions\FilamentCompanies\CreateNewUser;
+use App\Actions\FilamentCompanies\DeleteCompany;
 use Illuminate\Cookie\Middleware\EncryptCookies;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Wallo\FilamentCompanies\Pages\Auth\Register;
+use App\Actions\FilamentCompanies\UpdateCompanyName;
+use App\Actions\FilamentCompanies\AddCompanyEmployee;
+use App\Actions\FilamentCompanies\UpdateUserPassword;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\AuthenticateSession;
-use Illuminate\Session\Middleware\StartSession;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Wallo\FilamentCompanies\FilamentCompanies;
-use Wallo\FilamentCompanies\Pages\Auth\Login;
-use Wallo\FilamentCompanies\Pages\Auth\Register;
-use Wallo\FilamentCompanies\Pages\Company\CompanySettings;
+use App\Actions\FilamentCompanies\InviteCompanyEmployee;
+use App\Actions\FilamentCompanies\RemoveCompanyEmployee;
+use Filament\Http\Middleware\DisableBladeIconComponents;
 use Wallo\FilamentCompanies\Pages\Company\CreateCompany;
-use Wallo\FilamentCompanies\Pages\User\Profile;
+use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Wallo\FilamentCompanies\Pages\Company\CompanySettings;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use App\Actions\FilamentCompanies\UpdateUserProfileInformation;
 
 class FilamentCompaniesServiceProvider extends PanelProvider
 {
@@ -70,7 +71,11 @@ class FilamentCompaniesServiceProvider extends PanelProvider
                     ->autoAcceptInvitations()
                     ->termsAndPrivacyPolicy()
                     ->notifications()
-                    ->modals(),
+                    ->modals()
+                    ->addProfileComponents([
+                        7 => ConnectFacebook::class, 
+                    ])
+
             )
             ->registration(Register::class)
             ->colors([
@@ -88,7 +93,7 @@ class FilamentCompaniesServiceProvider extends PanelProvider
                 'profile' => MenuItem::make()
                     ->label('Profile')
                     ->icon('heroicon-o-user-circle')
-                    ->url(static fn () => Profile::getUrl(panel: FilamentCompanies::getUserPanel())),
+                    ->url(static fn() => Profile::getUrl(panel: FilamentCompanies::getUserPanel())),
             ])
             ->authGuard('web')
             ->discoverWidgets(in: app_path('Filament/Company/Widgets'), for: 'App\\Filament\\Company\\Widgets')

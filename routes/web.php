@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Services\SocialMediaImageGenerator;
+use App\Http\Controllers\FacebookController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -39,5 +40,9 @@ Route::get('/generate-image', function (Request $request) {
 Route::get('/privacy', function () {
    return "Privacy Policy";
 });
+
+Route::get('/facebook/redirect', [FacebookController::class, 'redirect'])->name('facebook.redirect');
+Route::get('/facebook/callback', [FacebookController::class, 'callback'])->name('facebook.callback');
+
 
 

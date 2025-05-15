@@ -20,12 +20,31 @@ class FacebookService
         ]);
     }
 
+    public function getRedirectLoginHelper( )
+    {
+        return $this->fb->getRedirectLoginHelper();
+    }
+
+    public function isFacebookTokenValid(): bool
+    {  
+        $token = auth()->user()->facebook_token;
+
+        if (! $token) return false;        
+
+        try {
+            $response = $this->fb->get('/me?fields=id', $token);
+            return isset($response->getDecodedBody()['id']);
+        } catch (\Exception $e) {
+            // Log the error for debugging
+            Log::warning('Facebook token validation failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
     public function listPages(): array
     {
         try {
-            $token = config('services.facebook.user_token'); // your long-lived user token
-
-            $response = $this->fb->get('/me/accounts', $token);
+            $response = $this->fb->get('/me/accounts',  auth()->user()->facebook_token);
 
             $pages = $response->getDecodedBody()['data'] ?? [];
 
@@ -37,8 +56,8 @@ class FacebookService
 
     public function fillPageDetails(string $pageId, Set $set): void
     {
-        $token = config('services.facebook.user_token');
-        $response = $this->fb->get('/me/accounts?fields=id,name,picture{url},access_token', $token);
+
+        $response = $this->fb->get('/me/accounts?fields=id,name,picture{url},access_token',  auth()->user()->facebook_token);
 
         $pages = $response->getDecodedBody()['data'] ?? [];
 
@@ -108,7 +127,7 @@ class FacebookService
             ///{post_id}?fields=shares,comments.summary(true),reactions.summary(true)
 
             $response = $this->fb->get(
-                "/".$pageId."_".$postId."/insights?metric=post_impressions,post_engaged_users",
+                "/" . $pageId . "_" . $postId . "/insights?metric=post_impressions,post_engaged_users",
                 $pageToken
             );
 
