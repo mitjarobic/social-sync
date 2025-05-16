@@ -8,10 +8,7 @@ use App\Models\Platform;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Company\Resources\PlatformResource\Pages;
-use App\Filament\Company\Resources\PlatformResource\RelationManagers;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -57,11 +54,13 @@ class PlatformResource extends Resource
                             }),
                         Forms\Components\Select::make('external_id')
                             ->label('Page / Account')
-                            ->options(fn(Get $get) => match ($get('provider')) {
-                                'facebook' => app(\App\Services\FacebookService::class)->listPages(),
-                                'instagram' => app(\App\Services\InstagramService::class)->listAccounts(),
-                                'x' => app(\App\Services\XService::class)->listAccounts(),
-                                default => [],
+                            ->options(function(Get $get) {
+                                return match ($get('provider')) {
+                                    'facebook' => (new \App\Services\FacebookService(auth()->user()))->listPages(),
+                                    'instagram' => (new \App\Services\InstagramService(auth()->user()))->listAccounts(),
+                                    'x' => app(\App\Services\XService::class)->listAccounts(),
+                                    default => [],
+                                };
                             })
                             ->selectablePlaceholder(false)
                             ->required()
@@ -69,8 +68,8 @@ class PlatformResource extends Resource
                             ->key('external_id')
                             ->afterStateUpdated(function ($state, Set $set, Get $get,) {
                                 match ($get('provider')) {
-                                    'facebook' => app(\App\Services\FacebookService::class)->fillPageDetails($state, $set),
-                                    'instagram' => app(\App\Services\InstagramService::class)->fillAccountDetails($state, $set),
+                                    'facebook' => (new \App\Services\FacebookService(auth()->user()))->fillPageDetails($state, $set),
+                                    'instagram' => (new \App\Services\InstagramService(auth()->user()))->fillAccountDetails($state, $set),
                                     'x' => app(\App\Services\XService::class)->fillAccountDetails($state, $set),
                                     default => null,
                                 };
@@ -85,9 +84,9 @@ class PlatformResource extends Resource
                             ->dehydrated(fn (Get $get): bool => filled($get('provider'))),
                         Forms\Components\Hidden::make('external_name'),
                         Forms\Components\Hidden::make('external_url'),
-                        Forms\Components\Hidden::make('external_token'), 
+                        Forms\Components\Hidden::make('external_token'),
                         Forms\Components\Hidden::make('external_picture_url'),
-                    ])->columns(1)->maxWidth('lg'),      
+                    ])->columns(1)->maxWidth('lg'),
             ]);
     }
 

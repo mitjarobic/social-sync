@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use App\Support\ImageStore;
 use Filament\Forms\Set;
 use JanuSoftware\Facebook\Facebook;
@@ -10,9 +11,11 @@ use Illuminate\Support\Facades\Log;
 class InstagramService
 {
     protected Facebook $fb;
+    protected User $user;
 
-    public function __construct()
+    public function __construct(User $user)
     {
+        $this->user = $user;
         $this->fb = new Facebook([
             'app_id' => config('services.facebook.app_id'),
             'app_secret' => config('services.facebook.app_secret'),
@@ -26,8 +29,8 @@ class InstagramService
      */
     public function listAccounts(): array
     {
-        try {   
-            $token = auth()->user()->facebook_token;
+        try {
+            $token = $this->user->facebook_token;
             // First get all Facebook pages
             $pagesResponse = $this->fb->get('/me/accounts', $token);
 
@@ -60,10 +63,10 @@ class InstagramService
     public function fillAccountDetails(string $instagramId, Set $set): void
     {
         try {
-            
+
             $response = $this->fb->get(
                 "/{$instagramId}?fields=id,name,username,profile_picture_url",
-                auth()->user()->facebook_token
+                $this->user->facebook_token
             );
 
             $account = $response->getDecodedBody();
@@ -127,18 +130,35 @@ class InstagramService
     public function getMetrics(string $instagramId, string $postId, string $pageToken): array
     {
         try {
-            Log::debug('Getting Instagram metrics', compact('instagramId', 'postId', 'pageToken'));
+            // Get media insights
+            $insightsResponse = $this->fb->get(
+                "/{$postId}/insights?metric=reach,impressions,engagement",
+                $pageToken
+            );
 
-            // Since we might encounter permission issues like with Facebook,
-            // we'll use consistent mock data as a temporary solution
+            // Get comments and likes data
+            $mediaResponse = $this->fb->get(
+                "/{$postId}?fields=comments_count,like_count",
+                $pageToken
+            );
 
-            // Generate consistent mock data based on the post ID
-            $postIdHash = crc32($postId);
-            $reach = 100 + ($postIdHash % 900); // 100-1000 range
-            $likes = 10 + ($postIdHash % 90);   // 10-100 range
-            $comments = 1 + ($postIdHash % 19);  // 1-20 range
+            $insightsData = $insightsResponse->getDecodedBody()['data'] ?? [];
+            $mediaData = $mediaResponse->getDecodedBody();
 
-            Log::info('Using consistent mock data for Instagram metrics', [
+            // Extract metrics
+            $reach = 0;
+            $likes = $mediaData['like_count'] ?? 0;
+            $comments = $mediaData['comments_count'] ?? 0;
+
+            // Get reach from insights
+            foreach ($insightsData as $insight) {
+                if ($insight['name'] === 'reach') {
+                    $reach = $insight['values'][0]['value'] ?? 0;
+                    break;
+                }
+            }
+
+            Log::info('Retrieved Instagram metrics', [
                 'post_id' => $postId,
                 'metrics' => compact('reach', 'likes', 'comments')
             ]);
@@ -154,6 +174,7 @@ class InstagramService
             Log::error('Failed to get Instagram metrics: ' . $e->getMessage(), [
                 'instagram_id' => $instagramId,
                 'post_id' => $postId,
+                'exception' => $e
             ]);
 
             return [

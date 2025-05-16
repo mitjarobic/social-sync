@@ -29,6 +29,7 @@ class UpdatePlatformPostMetrics implements ShouldQueue
      */
     public function handle(): void
     {
+        Log::info('Updating metrics for platform post');
         // Only update metrics for published posts with an external ID
         if ($this->platformPost->status !== \App\Enums\PlatformPostStatus::PUBLISHED || !$this->platformPost->external_id) {
             return;
@@ -37,7 +38,7 @@ class UpdatePlatformPostMetrics implements ShouldQueue
         try {
             $platform = $this->platformPost->platform;
             $provider = $platform->provider;
-            $externalId = $this->platformPost->external_id;
+            $externalId = $this-> platformPost->external_id;
             $token = $platform->external_token;
 
             // Get metrics based on platform type using the appropriate service

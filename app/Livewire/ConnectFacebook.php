@@ -21,7 +21,8 @@ class ConnectFacebook extends Component
 
     public function isFacebookConnected(): bool
     {
-        return auth()->user()?->facebook_token && (new \App\Services\FacebookService)->isFacebookTokenValid();
+        $user = auth()->user();
+        return $user?->facebook_token && (new \App\Services\FacebookService($user))->isFacebookTokenValid();
     }
 
     public function mount(): void

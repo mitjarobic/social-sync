@@ -26,7 +26,6 @@ class FacebookController extends Controller
 
     public function callback(Request $request, FacebookService $facebookService)
     {
-
         $helper = $facebookService->getRedirectLoginHelper();
 
         if ($request->state) {
@@ -34,7 +33,7 @@ class FacebookController extends Controller
         }
 
         try {
-            $accessToken = $helper->getAccessToken();            
+            $accessToken = $helper->getAccessToken();
 
             // Store user token
             auth()->user()->update([

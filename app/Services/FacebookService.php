@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use Filament\Forms\Set;
 use App\Support\ImageStore;
 use JanuSoftware\Facebook\Facebook;
@@ -10,9 +11,11 @@ use Illuminate\Support\Facades\Log;
 class FacebookService
 {
     protected Facebook $fb;
+    protected User $user;
 
-    public function __construct()
+    public function __construct(User $user)
     {
+        $this->user = $user;
         $this->fb = new Facebook([
             'app_id' => config('services.facebook.app_id'),
             'app_secret' => config('services.facebook.app_secret'),
@@ -20,16 +23,16 @@ class FacebookService
         ]);
     }
 
-    public function getRedirectLoginHelper( )
+    public function getRedirectLoginHelper()
     {
         return $this->fb->getRedirectLoginHelper();
     }
 
     public function isFacebookTokenValid(): bool
-    {  
-        $token = auth()->user()->facebook_token;
+    {
+        $token = $this->user->facebook_token;
 
-        if (! $token) return false;        
+        if (! $token) return false;
 
         try {
             $response = $this->fb->get('/me?fields=id', $token);
@@ -37,6 +40,8 @@ class FacebookService
         } catch (\Exception $e) {
             // Log the error for debugging
             Log::warning('Facebook token validation failed: ' . $e->getMessage());
+            $this->user->update(['facebook_token' => null]);
+
             return false;
         }
     }
@@ -44,7 +49,7 @@ class FacebookService
     public function listPages(): array
     {
         try {
-            $response = $this->fb->get('/me/accounts',  auth()->user()->facebook_token);
+            $response = $this->fb->get('/me/accounts', $this->user->facebook_token);
 
             $pages = $response->getDecodedBody()['data'] ?? [];
 
@@ -56,8 +61,7 @@ class FacebookService
 
     public function fillPageDetails(string $pageId, Set $set): void
     {
-
-        $response = $this->fb->get('/me/accounts?fields=id,name,picture{url},access_token',  auth()->user()->facebook_token);
+        $response = $this->fb->get('/me/accounts?fields=id,name,picture{url},access_token', $this->user->facebook_token);
 
         $pages = $response->getDecodedBody()['data'] ?? [];
 
@@ -111,6 +115,9 @@ class FacebookService
         }
     }
 
+    //147990835064638_122215407008078985/insights?metric=post_reactions_by_type_total,post_impressions,post_clicks,post_impressions_unique',
+    ///{post_id}?fields=shares,comments.summary(true),reactions.summary(true)
+
     /**
      * Get metrics for a Facebook post
      *
@@ -121,46 +128,41 @@ class FacebookService
      */
     public function getMetrics(string $pageId, string $postId, string $pageToken): array
     {
+        // dd(compact('pageId', 'postId', 'pageToken'));
         try {
-
-            //147990835064638_122215407008078985/insights?metric=post_reactions_by_type_total,post_impressions,post_clicks,post_impressions_unique',
-            ///{post_id}?fields=shares,comments.summary(true),reactions.summary(true)
-
-            $response = $this->fb->get(
-                "/" . $pageId . "_" . $postId . "/insights?metric=post_impressions,post_engaged_users",
+            // First: get post insights
+            $insightsResponse = $this->fb->get(
+                "/{$pageId}_{$postId}/insights?metric=post_impressions,post_engaged_users",
                 $pageToken
             );
 
-            dd($response->getDecodedBody());
+            dd($insightsResponse->getDecodedBody());
+            $insights = $insightsResponse->getDecodedBody();
 
-            $response = $this->fb->get("/$postId?fields=insights.metric(post_impressions,post_engaged_users)", $pageToken);
+            $reach = 0;
+            if (isset($insights['data'])) {
+                foreach ($insights['data'] as $item) {
+                    if ($item['name'] === 'post_impressions') {
+                        $reach = $item['values'][0]['value'] ?? 0;
+                    }
+                }
+            }
 
+            // Second: get public fields (reactions, comments, shares)
+            $fieldsResponse = $this->fb->get(
+                "/{$postId}?fields=reactions.summary(true),comments.summary(true),shares",
+                $pageToken
+            );
+            $fields = $fieldsResponse->getDecodedBody();
 
+            $likes = $fields['reactions']['summary']['total_count'] ?? 0;
+            $comments = $fields['comments']['summary']['total_count'] ?? 0;
+            $shares = $fields['shares']['count'] ?? 0;
 
-            // Since we're getting permission errors, we'll use consistent mock data
-            // This is a temporary solution until the permission issues are resolved
-            // The mock data will be based on the post ID to ensure consistency
+            // dd(compact('reach', 'likes', 'comments', 'shares'));
 
-            // Generate consistent mock data based on the post ID
-            $postIdHash = crc32($postId);
-            $reach = 50 + ($postIdHash % 450); // 50-500 range
-            $likes = 5 + ($postIdHash % 45);   // 5-50 range
-            $comments = 1 + ($postIdHash % 9);  // 1-10 range
-            $shares = 1 + ($postIdHash % 4);    // 1-5 range
-
-            Log::info('Using consistent mock data for Facebook metrics due to permission issues', [
-                'post_id' => $postId,
-                'metrics' => compact('reach', 'likes', 'comments', 'shares')
-            ]);
-
-            return [
-                'reach' => $reach,
-                'likes' => $likes,
-                'comments' => $comments,
-                'shares' => $shares,
-            ];
+            return compact('reach', 'likes', 'comments', 'shares');
         } catch (\Throwable $e) {
-            // Log the error but return empty metrics
             Log::error('Failed to get Facebook metrics: ' . $e->getMessage(), [
                 'page_id' => $pageId,
                 'post_id' => $postId,
