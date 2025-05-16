@@ -49,7 +49,7 @@ class PostToFacebook implements ShouldQueue
         } catch (\Exception $e) {
 
             $this->platformPost->update([
-                'status' => 'failed',
+                'status' => \App\Enums\PlatformPostStatus::FAILED,
                 'metadata' => ['error' => $e->getMessage()]
             ]);
         }

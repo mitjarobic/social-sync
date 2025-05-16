@@ -31,29 +31,6 @@ class PlatformPostSchema
 
             Forms\Components\Textarea::make('metadata'),
 
-            // Metrics fields
-            Forms\Components\Section::make('Metrics')
-                ->schema([
-                    Forms\Components\TextInput::make('reach')
-                        ->numeric()
-                        ->default(0),
-
-                    Forms\Components\TextInput::make('likes')
-                        ->numeric()
-                        ->default(0),
-
-                    Forms\Components\TextInput::make('comments')
-                        ->numeric()
-                        ->default(0),
-
-                    Forms\Components\TextInput::make('shares')
-                        ->numeric()
-                        ->default(0),
-
-                    Forms\Components\DateTimePicker::make('metrics_updated_at'),
-                ])
-                ->columns(2),
-
             Forms\Components\DateTimePicker::make('scheduled_at'),
 
             Forms\Components\DateTimePicker::make('posted_at'),
@@ -74,11 +51,34 @@ class PlatformPostSchema
                     'failed' => 'danger',
                     default => 'gray',
                 }),
-            // Metrics column with custom component
-            Tables\Columns\ViewColumn::make('metrics')
-                ->label('Metrics')
-                ->view('filament.tables.columns.platform-post-metrics')
-                ->alignCenter(),
+            // Individual metrics columns
+            Tables\Columns\TextColumn::make('reach')
+                ->label('Reach')
+                ->icon('heroicon-o-eye')
+                ->color('success')
+                ->alignCenter()
+                ->sortable(),
+
+            Tables\Columns\TextColumn::make('likes')
+                ->label('Likes')
+                ->icon('heroicon-o-heart')
+                ->color('primary')
+                ->alignCenter()
+                ->sortable(),
+
+            Tables\Columns\TextColumn::make('comments')
+                ->label('Comments')
+                ->icon('heroicon-o-chat-bubble-left-right')
+                ->color('warning')
+                ->alignCenter()
+                ->sortable(),
+
+            Tables\Columns\TextColumn::make('shares')
+                ->label('Shares')
+                ->icon('heroicon-o-share')
+                ->color('info')
+                ->alignCenter()
+                ->sortable(),
             Tables\Columns\TextColumn::make('external_url')
                 ->label('URL')
                 ->formatStateUsing(fn() => 'Link')

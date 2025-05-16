@@ -8,8 +8,10 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables\Table;
 use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\BulkActionGroup;
 use App\Filament\Company\Resources\PlatformPostResource\Pages;
+use App\Filament\Company\Resources\PlatformPostResource\Actions\RefreshMetricsAction;
 
 class PlatformPostResource extends Resource
 {
@@ -30,7 +32,10 @@ class PlatformPostResource extends Resource
                 //
             ])
             ->actions([
-                EditAction::make(),
+                ActionGroup::make([
+                    EditAction::make(),
+                    RefreshMetricsAction::make(),
+                ])->dropdown(true)
             ])
             ->bulkActions([
                 BulkActionGroup::make([

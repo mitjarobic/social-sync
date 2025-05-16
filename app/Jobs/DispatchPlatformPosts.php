@@ -15,15 +15,27 @@ class DispatchPlatformPosts implements ShouldQueue
      */
     public function __construct(public Post $post)
     {
-        
+
     }
 
-    // app/Jobs/DispatchPlatformPosts.php
+    /**
+     * Execute the job.
+     */
     public function handle()
     {
+        // First, update the post status to PUBLISHING
+        $this->post->status = \App\Enums\PostStatus::PUBLISHING;
+        $this->post->save();
+
+        // Dispatch jobs for each platform post
         $this->post->platformPosts()
             ->where('status', \App\Enums\PlatformPostStatus::QUEUED)
             ->each(function ($platformPost) {
+                // Update platform post status to PUBLISHING
+                $platformPost->status = \App\Enums\PlatformPostStatus::PUBLISHING;
+                $platformPost->save();
+
+                // Dispatch the appropriate job based on platform
                 match ($platformPost->platform->provider) {
                     'instagram' => \App\Jobs\PostToInstagram::dispatch($platformPost),
                     'facebook' => \App\Jobs\PostToFacebook::dispatch($platformPost),
@@ -31,5 +43,8 @@ class DispatchPlatformPosts implements ShouldQueue
                     default => null
                 };
             });
+
+        // Update the post status again after dispatching all jobs
+        $this->post->updateStatus();
     }
 }

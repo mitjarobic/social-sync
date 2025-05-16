@@ -12,7 +12,6 @@ use Filament\Forms\Form;
 use App\Enums\PostStatus;
 use Filament\Tables\Table;
 use App\Support\ImageStore;
-use Illuminate\Support\Str;
 use Filament\Resources\Resource;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
@@ -124,7 +123,7 @@ class PostResource extends Resource
                                                         return $postStatus === PostStatus::SCHEDULED->value
                                                             ? 'queued'
                                                             : 'draft';
-                                                    })                                                   
+                                                    })
                                             ])
                                             ->label('Scheduled Platforms')
                                             ->columns(2)
@@ -352,39 +351,108 @@ class PostResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
-                Tables\Columns\TextColumn::make('content')->limit(50),
-                Tables\Columns\TextColumn::make('platformPosts.platform.name')
+                Tables\Columns\TextColumn::make('content')
+                    ->limit(50)
+                    ->searchable(),
+
+                // Platforms column with icons - using Filament's native components
+                Tables\Columns\TextColumn::make('platformPosts')
                     ->label('Platforms')
-                    ->formatStateUsing(function (Post $record) {
-                        return $record->platformPosts
-                            ->pluck('platform.name')
-                            ->unique()
-                            ->join(', ');
-                    }),
+                    ->state(function (Post $record): array {
+                        $platformPosts = $record->platformPosts()->with('platform')->get();
+
+                        if ($platformPosts->isEmpty()) {
+                            return ['None'];
+                        }
+
+                        $items = [];
+
+                        foreach ($platformPosts as $platformPost) {
+                            $platform = $platformPost->platform;
+                            if (!$platform) continue;
+
+                            $statusValue = $platformPost->status->value;
+                            $statusLabel = ucfirst($statusValue);
+
+                            $items[] = $platform->label . ' - ' . $statusLabel;
+                        }
+
+                        return $items;
+                    })
+                    ->badge()
+                    ->color(fn (string $state): string => match (true) {
+                        str_contains($state, 'Published') => 'success',
+                        str_contains($state, 'Publishing') => 'warning',
+                        str_contains($state, 'Queued') => 'info',
+                        str_contains($state, 'Failed') => 'danger',
+                        default => 'gray',
+                    })
+                    ->separator(',')
+                    ->listWithLineBreaks(),
+
+                // Post status
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn(PostStatus $state) => $state->color()),
-                Tables\Columns\TextColumn::make('created_at')->sortable(),
+
+                // Created at
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable(),
+
+                // Platform status with detailed information - using Filament's native components
                 Tables\Columns\TextColumn::make('platform_status')
                     ->label('Platform Status')
-                    ->formatStateUsing(function (Post $record) {
-                        $statuses = $record->platformPosts
-                            ->groupBy('status')
-                            ->map(
-                                fn($items, $status) =>
-                                $items->count() . ' ' . Str::of($status)->title()
-                            )
-                            ->join(', ');
+                    ->state(function (Post $record): array {
+                        // Reload the relationship to ensure we have the latest data
+                        $platformPosts = $record->platformPosts()->get();
 
-                        return $statuses ?: 'No platforms';
+                        if ($platformPosts->isEmpty()) {
+                            return ['No platforms'];
+                        }
+
+                        // Group by status
+                        $groupedByStatus = $platformPosts->groupBy(function ($platformPost) {
+                            return $platformPost->status->value;
+                        });
+
+                        // Define the order we want statuses to appear
+                        $statusOrder = [
+                            \App\Enums\PlatformPostStatus::PUBLISHED->value,
+                            \App\Enums\PlatformPostStatus::PUBLISHING->value,
+                            \App\Enums\PlatformPostStatus::QUEUED->value,
+                            \App\Enums\PlatformPostStatus::FAILED->value,
+                            \App\Enums\PlatformPostStatus::DRAFT->value,
+                        ];
+
+                        $items = [];
+
+                        // Sort and format the statuses
+                        foreach ($statusOrder as $status) {
+                            if (!$groupedByStatus->has($status)) {
+                                continue;
+                            }
+
+                            $count = $groupedByStatus->get($status)->count();
+                            $label = ucfirst($status);
+
+                            $items[] = "{$count} {$label}";
+                        }
+
+                        return $items;
                     })
                     ->badge()
-                    ->color(fn(Post $record) => match (true) {
-                        $record->platformPosts->contains('status', 'failed') => 'danger',
-                        $record->platformPosts->every('status', 'published') => 'success',
-                        default => 'warning'
+                    ->color(fn (string $state): string => match (true) {
+                        str_contains($state, 'Published') => 'success',
+                        str_contains($state, 'Publishing') => 'warning',
+                        str_contains($state, 'Queued') => 'info',
+                        str_contains($state, 'Failed') => 'danger',
+                        default => 'gray',
                     })
+                    ->separator(' ')
+                    ->listWithLineBreaks()
             ])
             ->filters([
                 //
@@ -402,7 +470,10 @@ class PostResource extends Resource
                     })
                     ->visible(
                         fn(Post $record) =>
-                        $record->status === \App\Enums\PostStatus::SCHEDULED
+                        // Only show for scheduled posts that aren't already published or publishing
+                        $record->status === \App\Enums\PostStatus::SCHEDULED &&
+                        !$record->platformPosts()->where('status', \App\Enums\PlatformPostStatus::PUBLISHED)->exists() &&
+                        !$record->platformPosts()->where('status', \App\Enums\PlatformPostStatus::PUBLISHING)->exists()
                     )
             ])
             ->bulkActions([

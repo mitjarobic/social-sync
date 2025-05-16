@@ -2,7 +2,6 @@
 
 namespace App\Console;
 
-use App\Jobs\DispatchScheduledPosts;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -15,9 +14,9 @@ class Kernel extends ConsoleKernel
     {
         // Dispatch scheduled posts every minute
         $schedule->command('posts:dispatch-scheduled')->everyMinute();
-        
+
         // Update metrics for platform posts every hour
-        $schedule->command('platform-posts:update-metrics --days=7')->hourly();
+        $schedule->command('platform-post:update-metrics --published')->hourly();
     }
 
     /**

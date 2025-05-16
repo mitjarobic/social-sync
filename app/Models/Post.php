@@ -77,15 +77,53 @@ class Post extends Model
         });
     }
 
+    /**
+     * Update the post status based on the status of its platform posts
+     *
+     * Status logic:
+     * - If any platform post is failed -> FAILED
+     * - If all platform posts are published -> PUBLISHED
+     * - If any platform post is publishing -> PUBLISHING
+     * - If any platform post is queued -> SCHEDULED
+     * - Otherwise -> DRAFT
+     */
     public function updateStatus()
     {
-        if ($this->platformPosts()->where('status', 'failed')->exists()) {
-            $this->status = \App\Enums\PostStatus::FAILED;
-        } elseif ($this->platformPosts()->where('status', '!=', 'published')->doesntExist()) {
-            $this->status = \App\Enums\PostStatus::PUBLISHED;
+        // Refresh the relationship to ensure we have the latest data
+        $this->load('platformPosts');
+
+        // If there are no platform posts, don't change the status
+        if ($this->platformPosts->isEmpty()) {
+            return;
         }
 
-        // $this->save();
+        // Determine the new status based on platform posts
+        $newStatus = null;
+
+        if ($this->platformPosts->contains('status', 'failed')) {
+            $newStatus = \App\Enums\PostStatus::FAILED;
+        } elseif ($this->platformPosts->contains('status', 'published') &&
+                 !$this->platformPosts->contains(fn($pp) => $pp->status !== 'published')) {
+            $newStatus = \App\Enums\PostStatus::PUBLISHED;
+        } elseif ($this->platformPosts->contains('status', 'publishing')) {
+            $newStatus = \App\Enums\PostStatus::PUBLISHING;
+        } elseif ($this->platformPosts->contains('status', 'queued')) {
+            $newStatus = \App\Enums\PostStatus::SCHEDULED;
+        } else {
+            $newStatus = \App\Enums\PostStatus::DRAFT;
+        }
+
+        // Only update if the status has changed
+        if ($this->status !== $newStatus) {
+            $this->status = $newStatus;
+            $this->save();
+
+            \Illuminate\Support\Facades\Log::info('Updated post status', [
+                'post_id' => $this->id,
+                'new_status' => $newStatus->value,
+                'platform_posts' => $this->platformPosts->pluck('status', 'id')
+            ]);
+        }
     }
 
     public function createOrUpdateImageIfNecessary()

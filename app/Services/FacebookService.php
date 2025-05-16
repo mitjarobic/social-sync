@@ -118,38 +118,60 @@ class FacebookService
      */
     public function getMetrics(string $pageId, string $postId, string $pageToken): array
     {
-        // dd(compact('pageId', 'postId', 'pageToken'));
         try {
-            // First: get post insights
-            $insightsResponse = $this->fb->get(
-                "/{$pageId}_{$postId}/insights?metric=post_impressions,post_engaged_users",
-                $pageToken
-            );
-
-            dd($insightsResponse->getDecodedBody());
-            $insights = $insightsResponse->getDecodedBody();
-
             $reach = 0;
-            if (isset($insights['data'])) {
-                foreach ($insights['data'] as $item) {
-                    if ($item['name'] === 'post_impressions') {
-                        $reach = $item['values'][0]['value'] ?? 0;
+            $likes = 0;
+            $comments = 0;
+            $shares = 0;
+
+            // Try to get post insights for reach
+            try {
+                $insightsResponse = $this->fb->get(
+                    "/{$pageId}_{$postId}/insights?metric=post_impressions",
+                    $pageToken
+                );
+
+                $insights = $insightsResponse->getDecodedBody();
+
+                if (isset($insights['data'])) {
+                    foreach ($insights['data'] as $item) {
+                        if ($item['name'] === 'post_impressions') {
+                            $reach = $item['values'][0]['value'] ?? 0;
+                        }
                     }
                 }
+            } catch (\Throwable $insightsError) {
+                // Log the insights error but continue to get other metrics
+                Log::warning('Failed to get Facebook post insights: ' . $insightsError->getMessage(), [
+                    'page_id' => $pageId,
+                    'post_id' => $postId,
+                ]);
             }
 
-            // Second: get public fields (reactions, comments, shares)
-            $fieldsResponse = $this->fb->get(
-                "/{$postId}?fields=reactions.summary(true),comments.summary(true),shares",
-                $pageToken
-            );
-            $fields = $fieldsResponse->getDecodedBody();
+            // Get public fields (reactions, comments, shares)
+            try {
+                $fieldsResponse = $this->fb->get(
+                    "/{$pageId}_{$postId}?fields=reactions.summary(true),comments.summary(true),shares",
+                    $pageToken
+                );
+                $fields = $fieldsResponse->getDecodedBody();
 
-            $likes = $fields['reactions']['summary']['total_count'] ?? 0;
-            $comments = $fields['comments']['summary']['total_count'] ?? 0;
-            $shares = $fields['shares']['count'] ?? 0;
+                $likes = $fields['reactions']['summary']['total_count'] ?? 0;
+                $comments = $fields['comments']['summary']['total_count'] ?? 0;
+                $shares = $fields['shares']['count'] ?? 0;
+            } catch (\Throwable $fieldsError) {
+                // Log the fields error but continue with zeros
+                Log::warning('Failed to get Facebook post fields: ' . $fieldsError->getMessage(), [
+                    'page_id' => $pageId,
+                    'post_id' => $postId,
+                ]);
+            }
 
-            // dd(compact('reach', 'likes', 'comments', 'shares'));
+            Log::info('Retrieved Facebook metrics', [
+                'page_id' => $pageId,
+                'post_id' => $postId,
+                'metrics' => compact('reach', 'likes', 'comments', 'shares')
+            ]);
 
             return compact('reach', 'likes', 'comments', 'shares');
         } catch (\Throwable $e) {

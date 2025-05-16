@@ -49,4 +49,28 @@ class PlatformPost extends Model
     {
         return $this->belongsTo(Company::class);
     }
+
+    protected static function booted()
+    {
+        // When a platform post is created, update the parent post status
+        static::created(function ($platformPost) {
+            if ($platformPost->post) {
+                $platformPost->post->updateStatus();
+            }
+        });
+
+        // When a platform post is updated, update the parent post status
+        static::updated(function ($platformPost) {
+            if ($platformPost->isDirty('status') && $platformPost->post) {
+                $platformPost->post->updateStatus();
+            }
+        });
+
+        // When a platform post is deleted, update the parent post status
+        static::deleted(function ($platformPost) {
+            if ($platformPost->post) {
+                $platformPost->post->updateStatus();
+            }
+        });
+    }
 }

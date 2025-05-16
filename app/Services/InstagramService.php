@@ -98,32 +98,50 @@ class InstagramService
     public function getMetrics(string $instagramId, string $postId, string $pageToken): array
     {
         try {
-            // Get media insights
-            $insightsResponse = $this->fb->get(
-                "/{$postId}/insights?metric=reach,impressions,engagement",
-                $pageToken
-            );
-
-            // Get comments and likes data
-            $mediaResponse = $this->fb->get(
-                "/{$postId}?fields=comments_count,like_count",
-                $pageToken
-            );
-
-            $insightsData = $insightsResponse->getDecodedBody()['data'] ?? [];
-            $mediaData = $mediaResponse->getDecodedBody();
-
-            // Extract metrics
             $reach = 0;
-            $likes = $mediaData['like_count'] ?? 0;
-            $comments = $mediaData['comments_count'] ?? 0;
+            $likes = 0;
+            $comments = 0;
 
-            // Get reach from insights
-            foreach ($insightsData as $insight) {
-                if ($insight['name'] === 'reach') {
-                    $reach = $insight['values'][0]['value'] ?? 0;
-                    break;
+            // Try to get media insights for reach
+            try {
+                $insightsResponse = $this->fb->get(
+                    "/{$postId}/insights?metric=reach",
+                    $pageToken
+                );
+
+                $insightsData = $insightsResponse->getDecodedBody()['data'] ?? [];
+
+                // Get reach from insights
+                foreach ($insightsData as $insight) {
+                    if ($insight['name'] === 'reach') {
+                        $reach = $insight['values'][0]['value'] ?? 0;
+                        break;
+                    }
                 }
+            } catch (\Throwable $insightsError) {
+                // Log the insights error but continue to get other metrics
+                Log::warning('Failed to get Instagram post insights: ' . $insightsError->getMessage(), [
+                    'instagram_id' => $instagramId,
+                    'post_id' => $postId,
+                ]);
+            }
+
+            // Try to get comments and likes data
+            try {
+                $mediaResponse = $this->fb->get(
+                    "/{$postId}?fields=comments_count,like_count",
+                    $pageToken
+                );
+
+                $mediaData = $mediaResponse->getDecodedBody();
+                $likes = $mediaData['like_count'] ?? 0;
+                $comments = $mediaData['comments_count'] ?? 0;
+            } catch (\Throwable $mediaError) {
+                // Log the media error but continue with zeros
+                Log::warning('Failed to get Instagram post media data: ' . $mediaError->getMessage(), [
+                    'instagram_id' => $instagramId,
+                    'post_id' => $postId,
+                ]);
             }
 
             Log::info('Retrieved Instagram metrics', [
