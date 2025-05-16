@@ -3,8 +3,6 @@
 namespace App\Services;
 
 use App\Models\User;
-use Filament\Forms\Set;
-use App\Support\ImageStore;
 use JanuSoftware\Facebook\Facebook;
 use Illuminate\Support\Facades\Log;
 
@@ -46,34 +44,26 @@ class FacebookService
         }
     }
 
-    public function listPages(): array
+    public function exchangeForLongLivedToken(string $shortLivedToken): string
     {
+        $oauthClient = $this->fb->getOAuth2Client();
+
         try {
-            $response = $this->fb->get('/me/accounts', $this->user->facebook_token);
-
-            $pages = $response->getDecodedBody()['data'] ?? [];
-
-            return collect($pages)->mapWithKeys(fn($page) => [$page['id'] => $page['name']])->all();
+            $longLived = $oauthClient->getLongLivedAccessToken($shortLivedToken);
+            return (string) $longLived;
         } catch (\Throwable $e) {
-            throw new \Exception("Failed to fetch Facebook Pages: " . $e->getMessage());
+            throw new \Exception('Failed to exchange for long-lived token: ' . $e->getMessage());
         }
     }
 
-    public function fillPageDetails(string $pageId, Set $set): void
+    public function getRawPageData(): array
     {
-        $response = $this->fb->get('/me/accounts?fields=id,name,picture{url},access_token', $this->user->facebook_token);
-
-        $pages = $response->getDecodedBody()['data'] ?? [];
-
-        $page = collect($pages)->firstWhere('id', $pageId);
-
-        if ($page) {
-            $set('label', $page['name']);
-            $set('external_name', $page['name']);
-            $set('external_url', "https://facebook.com/{$page['id']}");
-            $imageUrl = ImageStore::savePlatformPhoto('instagram', $pageId, $page['picture']['data']['url']);
-            $set('external_picture_url', $imageUrl);
-            $set('external_token', $page['access_token'] ?? null);
+        try {
+            $response = $this->fb->get('/me/accounts?fields=id,name,picture{url},access_token', $this->user->facebook_token);
+            return $response->getDecodedBody()['data'] ?? [];
+        } catch (\Throwable $e) {
+            Log::error('Failed to fetch raw Facebook page data: ' . $e->getMessage());
+            return [];
         }
     }
 

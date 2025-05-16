@@ -3,8 +3,6 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Support\ImageStore;
-use Filament\Forms\Set;
 use JanuSoftware\Facebook\Facebook;
 use Illuminate\Support\Facades\Log;
 
@@ -23,63 +21,33 @@ class InstagramService
         ]);
     }
 
-    /**
-     * List all Instagram business accounts connected to accessible Facebook pages
-     * Returns array of [id => name] like FacebookService
-     */
-    public function listAccounts(): array
+    public function getRawInstagramAccounts(): array
     {
         try {
             $token = $this->user->facebook_token;
-            // First get all Facebook pages
-            $pagesResponse = $this->fb->get('/me/accounts', $token);
 
+            $pagesResponse = $this->fb->get('/me/accounts', $token);
             $pages = $pagesResponse->getDecodedBody()['data'] ?? [];
 
-            return collect($pages)
-                ->mapWithKeys(function ($page) use ($token) {
-                    $igResponse = $this->fb->get(
-                        "/{$page['id']}?fields=instagram_business_account{id,name,username}",
-                        $token
-                    );
+            $accounts = [];
 
-                    $igAccount = $igResponse->getDecodedBody()['instagram_business_account'] ?? null;
+            foreach ($pages as $page) {
+                $igResponse = $this->fb->get(
+                    "/{$page['id']}?fields=instagram_business_account{id,name,username,profile_picture_url}",
+                    $token
+                );
 
-                    return $igAccount
-                        ? [$igAccount['id'] => $igAccount['name'] ?? $igAccount['username']]
-                        : [];
-                })
-                ->filter()
-                ->all();
-        } catch (\Throwable $e) {
-            throw new \Exception("Failed to fetch Instagram accounts: " . $e->getMessage());
-        }
-    }
+                $ig = $igResponse->getDecodedBody()['instagram_business_account'] ?? null;
 
-    /**
-     * Fill details for a specific Instagram account
-     * Mirrors FacebookService's fillPageDetails pattern
-     */
-    public function fillAccountDetails(string $instagramId, Set $set): void
-    {
-        try {
-
-            $response = $this->fb->get(
-                "/{$instagramId}?fields=id,name,username,profile_picture_url",
-                $this->user->facebook_token
-            );
-
-            $account = $response->getDecodedBody();
-
-            if ($account) {
-                $set('label', $account['name']);
-                $set('external_name', $account['name']);
-                $set('external_url', "https://instagram.com/{$account['username']}");
-                $imageUrl = ImageStore::savePlatformPhoto('instagram', $instagramId, $account['profile_picture_url']);
-                $set('external_picture_url', $imageUrl);
+                if ($ig) {
+                    $accounts[] = $ig;
+                }
             }
+
+            return $accounts;
         } catch (\Throwable $e) {
-            throw new \Exception("Failed to fetch Instagram account details: " . $e->getMessage());
+            Log::error('Failed to fetch raw Instagram account data: ' . $e->getMessage());
+            return [];
         }
     }
 

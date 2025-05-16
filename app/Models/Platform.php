@@ -9,6 +9,7 @@ class Platform extends Model
     protected $fillable = [
         'label',
         'provider',
+        'user_id',
         'external_id',
         'external_name',
         'external_url',

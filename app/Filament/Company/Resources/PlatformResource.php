@@ -23,6 +23,24 @@ class PlatformResource extends Resource
 
     public static function form(Form $form): Form
     {
+        // Check if we're in edit mode
+        $isEditMode = $form->getRecord() !== null;
+
+        // If in edit mode, only show the label field
+        if ($isEditMode) {
+            return $form
+                ->schema([
+                    Forms\Components\Grid::make()
+                        ->schema([
+                            Forms\Components\TextInput::make('label')
+                                ->required()
+                                ->unique(ignoreRecord: true)
+                                ->label('Label'),
+                        ])->columns(1)->maxWidth('lg'),
+                ]);
+        }
+
+        // Otherwise, show the full form for creating a new platform
         return $form
             ->schema([
                 Forms\Components\Grid::make()
@@ -43,11 +61,8 @@ class PlatformResource extends Resource
                                 $set('external_url', null);
                                 $set('external_token', null);
 
-
-
                                 //Fire the afterStateUpdated event on the external_id select component
                                 // This is a workaround to trigger the state update on the select component
-
                                 $select = $component->getContainer()->getComponent('external_id');
                                 $select->state(array_key_first($select->getOptions()))
                                     ->callAfterStateUpdated();
@@ -56,9 +71,7 @@ class PlatformResource extends Resource
                             ->label('Page / Account')
                             ->options(function(Get $get) {
                                 return match ($get('provider')) {
-                                    'facebook' => (new \App\Services\FacebookService(auth()->user()))->listPages(),
-                                    'instagram' => (new \App\Services\InstagramService(auth()->user()))->listAccounts(),
-                                    'x' => app(\App\Services\XService::class)->listAccounts(),
+                                    'facebook', 'instagram', 'x' => self::getAvailablePlatforms($get('provider')),
                                     default => [],
                                 };
                             })
@@ -67,12 +80,7 @@ class PlatformResource extends Resource
                             ->live()
                             ->key('external_id')
                             ->afterStateUpdated(function ($state, Set $set, Get $get,) {
-                                match ($get('provider')) {
-                                    'facebook' => (new \App\Services\FacebookService(auth()->user()))->fillPageDetails($state, $set),
-                                    'instagram' => (new \App\Services\InstagramService(auth()->user()))->fillAccountDetails($state, $set),
-                                    'x' => app(\App\Services\XService::class)->fillAccountDetails($state, $set),
-                                    default => null,
-                                };
+                                self::fillPlatformDetails($state, $set, $get('provider'));
                             })
                             ->disabled(fn (Get $get): bool => blank($get('provider')))
                             ->dehydrated(fn (Get $get): bool => filled($get('provider'))),
@@ -154,5 +162,58 @@ class PlatformResource extends Resource
             'create' => Pages\CreatePlatform::route('/create'),
             'edit' => Pages\EditPlatform::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Get available platforms for the current company
+     *
+     * @param string $provider The platform provider (facebook, instagram, x)
+     * @return array Array of platform options [external_id => external_name]
+     */
+    public static function getAvailablePlatforms(string $provider): array
+    {
+        // Get the current company ID
+        $companyId = auth()->user()->currentCompany->id;
+
+        // Get existing platform IDs for this company
+        $existingPlatformIds = \App\Models\Platform::where('company_id', $companyId)
+            ->where('provider', $provider)
+            ->pluck('external_id')
+            ->toArray();
+
+        // Get all platforms of this provider that don't belong to the current company
+        $availablePlatforms = \App\Models\Platform::where('provider', $provider)
+            ->whereNotIn('external_id', $existingPlatformIds)
+            ->pluck('external_name', 'external_id')
+            ->toArray();
+
+        return $availablePlatforms;
+    }
+
+    /**
+     * Fill platform details from the database
+     *
+     * @param string $platformId The external ID of the platform
+     * @param Set $set The Filament form state setter
+     * @param string $provider The platform provider (facebook, instagram, x)
+     */
+    public static function fillPlatformDetails(string $platformId, Set $set, string $provider): void
+    {
+        // Get the platform details from the database
+        $platform = \App\Models\Platform::where('external_id', $platformId)
+            ->where('provider', $provider)
+            ->first();
+
+        if ($platform) {
+            $set('label', $platform->external_name);
+            $set('external_name', $platform->external_name);
+            $set('external_url', $platform->external_url);
+            $set('external_picture_url', $platform->external_picture_url);
+
+            // Only set external_token for Facebook as it's needed for posting
+            if ($provider === 'facebook') {
+                $set('external_token', $platform->external_token);
+            }
+        }
     }
 }

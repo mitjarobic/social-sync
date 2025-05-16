@@ -44,5 +44,10 @@ Route::get('/privacy', function () {
 Route::get('/facebook/redirect', [FacebookController::class, 'redirect'])->name('facebook.redirect');
 Route::get('/facebook/callback', [FacebookController::class, 'callback'])->name('facebook.callback');
 
+//test rout for sync platforms
+Route::get('/sync-platforms', function () {
+    (new \App\Services\PlatformSyncService(auth()->user()))->syncPlatforms();
+})->name('sync-platforms');
+
 
 
