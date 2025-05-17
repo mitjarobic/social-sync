@@ -116,6 +116,38 @@ class FacebookService
      * @param string $pageToken The page access token
      * @return array The metrics data
      */
+    /**
+     * Delete a post from Facebook
+     *
+     * @param string $postId The Facebook post ID
+     * @param string $pageToken The page access token
+     * @return bool Whether the deletion was successful
+     */
+    public function deletePost(string $postId, string $pageToken): bool
+    {
+        try {
+            $response = $this->fb->delete("/{$postId}", [], $pageToken);
+            $body = $response->getDecodedBody();
+
+            // Facebook returns { "success": true } when deletion is successful
+            return $body['success'] ?? false;
+        } catch (\Throwable $e) {
+            Log::error('Failed to delete Facebook post: ' . $e->getMessage(), [
+                'post_id' => $postId,
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
+     * Get metrics for a Facebook post
+     *
+     * @param string $pageId The Facebook page ID
+     * @param string $postId The Facebook post ID
+     * @param string $pageToken The page access token
+     * @return array The metrics data
+     */
     public function getMetrics(string $pageId, string $postId, string $pageToken): array
     {
         try {

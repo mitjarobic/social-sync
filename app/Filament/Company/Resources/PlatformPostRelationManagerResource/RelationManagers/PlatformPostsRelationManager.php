@@ -8,6 +8,7 @@ use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\BulkActionGroup;
+use App\Filament\Company\Resources\PlatformPostResource\Actions\DeletePlatformPostAction;
 use Filament\Resources\RelationManagers\RelationManager;
 
 class PlatformPostsRelationManager extends RelationManager
@@ -28,6 +29,7 @@ class PlatformPostsRelationManager extends RelationManager
             ])
             ->actions([
                 EditAction::make(),
+                DeletePlatformPostAction::make('delete')
             ])
             ->bulkActions([
                 BulkActionGroup::make([

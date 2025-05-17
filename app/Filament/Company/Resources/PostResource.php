@@ -16,6 +16,7 @@ use Filament\Resources\Resource;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
 use App\Filament\Company\Resources\PostResource\Pages;
+use App\Filament\Company\Resources\PostResource\Actions\DeletePostAction;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use App\Filament\Company\Resources\PlatformPostRelationManagerResource\RelationManagers\PlatformPostsRelationManager;
 
@@ -458,23 +459,26 @@ class PostResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('publish')
-                    ->requiresConfirmation()
-                    ->action(function (Post $record) {
-                        $record->update([
-                            'status' => \App\Enums\PostStatus::PUBLISHING
-                        ]);
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\EditAction::make(),
+                    DeletePostAction::make('delete'),
+                    Tables\Actions\Action::make('publish')
+                        ->requiresConfirmation()
+                        ->action(function (Post $record) {
+                            $record->update([
+                                'status' => \App\Enums\PostStatus::PUBLISHING
+                            ]);
 
-                        \App\Jobs\DispatchPlatformPosts::dispatch($record);
-                    })
-                    ->visible(
-                        fn(Post $record) =>
-                        // Only show for scheduled posts that aren't already published or publishing
-                        $record->status === \App\Enums\PostStatus::SCHEDULED &&
-                        !$record->platformPosts()->where('status', \App\Enums\PlatformPostStatus::PUBLISHED)->exists() &&
-                        !$record->platformPosts()->where('status', \App\Enums\PlatformPostStatus::PUBLISHING)->exists()
-                    )
+                            \App\Jobs\DispatchPlatformPosts::dispatch($record);
+                        })
+                        ->visible(
+                            fn(Post $record) =>
+                            // Only show for scheduled posts that aren't already published or publishing
+                            $record->status === \App\Enums\PostStatus::SCHEDULED &&
+                            !$record->platformPosts()->where('status', \App\Enums\PlatformPostStatus::PUBLISHED)->exists() &&
+                            !$record->platformPosts()->where('status', \App\Enums\PlatformPostStatus::PUBLISHING)->exists()
+                        )
+                ])->dropdown(true)
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

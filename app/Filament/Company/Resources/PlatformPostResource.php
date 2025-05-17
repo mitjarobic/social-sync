@@ -12,6 +12,7 @@ use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\BulkActionGroup;
 use App\Filament\Company\Resources\PlatformPostResource\Pages;
 use App\Filament\Company\Resources\PlatformPostResource\Actions\RefreshMetricsAction;
+use App\Filament\Company\Resources\PlatformPostResource\Actions\DeletePlatformPostAction;
 
 class PlatformPostResource extends Resource
 {
@@ -35,6 +36,7 @@ class PlatformPostResource extends Resource
                 ActionGroup::make([
                     EditAction::make(),
                     RefreshMetricsAction::make(),
+                    DeletePlatformPostAction::make('delete'),
                 ])->dropdown(true)
             ])
             ->bulkActions([
