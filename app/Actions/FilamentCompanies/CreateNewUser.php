@@ -23,6 +23,7 @@ class CreateNewUser implements CreatesNewUsers
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'timezone' => ['required', 'string', 'timezone'],
             'terms' => FilamentCompanies::hasTermsAndPrivacyPolicyFeature() ? ['accepted', 'required'] : '',
         ])->validate();
 
@@ -31,6 +32,7 @@ class CreateNewUser implements CreatesNewUsers
                 'name' => $input['name'],
                 'email' => $input['email'],
                 'password' => Hash::make($input['password']),
+                'timezone' => $input['timezone'] ?? 'UTC',
             ]), function (User $user) {
                 $this->createCompany($user);
             });

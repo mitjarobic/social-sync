@@ -17,6 +17,9 @@ class Kernel extends ConsoleKernel
 
         // Update metrics for platform posts every hour
         $schedule->command('posts:refresh-metrics')->hourly();
+
+        // Sync platforms (Facebook pages and Instagram accounts) daily
+        $schedule->command('platforms:sync --all')->daily();
     }
 
     /**

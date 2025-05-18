@@ -31,9 +31,15 @@ class PlatformPostSchema
 
             Forms\Components\Textarea::make('metadata'),
 
-            Forms\Components\DateTimePicker::make('scheduled_at'),
+            Forms\Components\DateTimePicker::make('scheduled_at')
+                ->native(false)
+                ->timezone(\App\Support\TimezoneHelper::getUserTimezone())
+                ->displayFormat('LLL'),
 
-            Forms\Components\DateTimePicker::make('posted_at'),
+            Forms\Components\DateTimePicker::make('posted_at')
+                ->native(false)
+                ->timezone(\App\Support\TimezoneHelper::getUserTimezone())
+                ->displayFormat('LLL'),
         ];
     }
 
@@ -88,11 +94,27 @@ class PlatformPostSchema
                 ->color('primary'),  // optional: makes it look like a link
             Tables\Columns\TextColumn::make('metrics_updated_at')
                 ->label('Metrics Updated')
-                ->dateTime()
+                ->formatStateUsing(function ($state) {
+                    if (!$state) return null;
+                    return \App\Support\TimezoneHelper::formatInUserTimezone($state);
+                })
                 ->sortable(),
 
-            Tables\Columns\TextColumn::make('scheduled_at')->dateTime(),
-            Tables\Columns\TextColumn::make('posted_at')->dateTime(),
+            Tables\Columns\TextColumn::make('scheduled_at')
+                ->label('Scheduled At')
+                ->formatStateUsing(function ($state) {
+                    if (!$state) return null;
+                    return \App\Support\TimezoneHelper::formatInUserTimezone($state);
+                })
+                ->sortable(),
+
+            Tables\Columns\TextColumn::make('posted_at')
+                ->label('Posted At')
+                ->formatStateUsing(function ($state) {
+                    if (!$state) return null;
+                    return \App\Support\TimezoneHelper::formatInUserTimezone($state);
+                })
+                ->sortable(),
         ];
     }
 }

@@ -3,11 +3,9 @@
 namespace App\Models;
 
 use App\Enums\PlatformPostStatus;
-use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
 
-
-class PlatformPost extends Model
+class PlatformPost extends BaseModel
 {
     protected $table = 'platform_post';
 
@@ -35,6 +33,17 @@ class PlatformPost extends Model
         'scheduled_at' => 'datetime',
         'posted_at' => 'datetime',
     ];
+
+    /**
+     * Set the scheduled_at attribute to UTC
+     *
+     * @param  string|null  $value
+     * @return void
+     */
+    public function setScheduledAtAttribute($value)
+    {
+        $this->attributes['scheduled_at'] = $value ? \App\Support\TimezoneHelper::toUTC($value) : null;
+    }
 
     public function platform()
     {

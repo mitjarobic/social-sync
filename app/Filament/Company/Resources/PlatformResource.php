@@ -9,6 +9,7 @@ use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
 use App\Filament\Company\Resources\PlatformResource\Pages;
+use App\Support\ImageStore;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -69,7 +70,7 @@ class PlatformResource extends Resource
                             }),
                         Forms\Components\Select::make('external_id')
                             ->label('Page / Account')
-                            ->options(function(Get $get) {
+                            ->options(function (Get $get) {
                                 return match ($get('provider')) {
                                     'facebook', 'instagram', 'x' => self::getAvailablePlatforms($get('provider')),
                                     default => [],
@@ -82,14 +83,14 @@ class PlatformResource extends Resource
                             ->afterStateUpdated(function ($state, Set $set, Get $get,) {
                                 self::fillPlatformDetails($state, $set, $get('provider'));
                             })
-                            ->disabled(fn (Get $get): bool => blank($get('provider')))
-                            ->dehydrated(fn (Get $get): bool => filled($get('provider'))),
+                            ->disabled(fn(Get $get): bool => blank($get('provider')))
+                            ->dehydrated(fn(Get $get): bool => filled($get('provider'))),
                         Forms\Components\TextInput::make('label')
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->label('Label')
-                            ->disabled(fn (Get $get): bool => blank($get('provider')))
-                            ->dehydrated(fn (Get $get): bool => filled($get('provider'))),
+                            ->disabled(fn(Get $get): bool => blank($get('provider')))
+                            ->dehydrated(fn(Get $get): bool => filled($get('provider'))),
                         Forms\Components\Hidden::make('external_name'),
                         Forms\Components\Hidden::make('external_url'),
                         Forms\Components\Hidden::make('external_token'),
@@ -105,6 +106,9 @@ class PlatformResource extends Resource
                 Tables\Columns\ImageColumn::make('external_picture_url')
                     ->label('')
                     ->size(30)
+                    ->getStateUsing(function ($record) {
+                        return $record->external_picture_url ? ImageStore::url($record->external_picture_url) : null;
+                    })
                     ->circular(),
                 Tables\Columns\TextColumn::make('label')
                     ->label('Label')
@@ -128,11 +132,17 @@ class PlatformResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Created At')
-                    ->dateTime()
+                    ->formatStateUsing(function ($state) {
+                        if (!$state) return null;
+                        return \App\Support\TimezoneHelper::formatInUserTimezone($state);
+                    })
                     ->sortable(),
                 Tables\Columns\TextColumn::make('updated_at')
                     ->label('Updated At')
-                    ->dateTime()
+                    ->formatStateUsing(function ($state) {
+                        if (!$state) return null;
+                        return \App\Support\TimezoneHelper::formatInUserTimezone($state);
+                    })
                     ->sortable(),
             ])
             ->filters([
@@ -173,7 +183,7 @@ class PlatformResource extends Resource
     public static function getAvailablePlatforms(string $provider): array
     {
         // Get the current company ID
-        $companyId = auth()->user()->currentCompany->id;
+        $companyId = request()->user()->currentCompany->id;
 
         // Get existing platform IDs for this company
         $existingPlatformIds = \App\Models\Platform::where('company_id', $companyId)

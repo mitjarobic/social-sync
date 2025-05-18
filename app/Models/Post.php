@@ -4,11 +4,10 @@ namespace App\Models;
 
 use App\Enums\PostStatus;
 use App\Support\ImageStore;
-use Illuminate\Database\Eloquent\Model;
 use App\Services\SocialMediaImageGenerator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Post extends Model
+class Post extends BaseModel
 {
     use HasFactory;
 
@@ -29,7 +28,9 @@ class Post extends Model
 
     protected $casts = [
         'status' => PostStatus::class,
-        'image_options' => 'array'
+        'image_options' => 'array',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
     ];
 
     // Relationship to the Company model

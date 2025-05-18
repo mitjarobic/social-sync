@@ -46,6 +46,7 @@ class ImageStore
         $storagePath = 'platform_pics/' . $filename;
 
         ImageStore::save($storagePath, $imageContents);
-        return ImageStore::url($storagePath);
+
+        return $storagePath;
     }
 }

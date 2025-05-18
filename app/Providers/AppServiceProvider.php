@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\TimezoneHelper;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 
@@ -20,6 +21,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Set the application timezone based on the user's preference
+        TimezoneHelper::setApplicationTimezone();
+
         // Register the metrics-bar component
         Blade::component('filament.components.metrics-bar', 'filament::metrics-bar');
     }

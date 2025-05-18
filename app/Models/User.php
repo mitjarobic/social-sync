@@ -33,7 +33,8 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasDefaul
         'name',
         'email',
         'password',
-        'facebook_token'
+        'facebook_token',
+        'timezone'
     ];
 
     /**

@@ -8,7 +8,6 @@ use Filament\Widgets;
 use App\Models\Company;
 use Filament\PanelProvider;
 use Filament\Facades\Filament;
-use App\Livewire\ConnectFacebook;
 use Filament\Navigation\MenuItem;
 use Filament\Support\Colors\Color;
 use Illuminate\Support\Facades\Auth;
@@ -73,7 +72,8 @@ class FilamentCompaniesServiceProvider extends PanelProvider
                     ->notifications()
                     ->modals()
                     ->addProfileComponents([
-                        7 => ConnectFacebook::class, 
+                        7 => \App\Livewire\ConnectFacebook::class,
+                        8 => \App\Livewire\UpdateTimezoneForm::class,
                     ])
 
             )

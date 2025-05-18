@@ -2,9 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-
-class Platform extends Model
+class Platform extends BaseModel
 {
     protected $fillable = [
         'label',
@@ -15,6 +13,11 @@ class Platform extends Model
         'external_url',
         'external_token',
         'external_picture_url'
+    ];
+
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
     ];
 
     // Relationship to the Company model
@@ -28,8 +31,21 @@ class Platform extends Model
         return $this->belongsToMany(Post::class);
     }
 
-    public function scopeForCurrentCompany()
+    /**
+     * Scope a query to only include platforms for the current company.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeForCurrentCompany($query)
     {
-        return $this->where('company_id', auth()->user()->currentCompany->id);
+        // Get the current company ID from the request
+        $user = request()->user();
+
+        if ($user && $user->currentCompany) {
+            return $query->where('company_id', $user->currentCompany->id);
+        }
+
+        return $query;
     }
 }

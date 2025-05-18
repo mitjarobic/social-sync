@@ -129,7 +129,10 @@ class PostResource extends Resource
                                                     }),
                                                 Forms\Components\DateTimePicker::make('scheduled_at')
                                                     ->required()
-                                                    ->label('Scheduled At'),
+                                                    ->label('Scheduled At')
+                                                    ->native(false)
+                                                    ->timezone(\App\Support\TimezoneHelper::getUserTimezone())
+                                                    ->displayFormat('LLL'),
 
                                                 Forms\Components\TextInput::make('status')
                                                     ->default(function (Get $get) {
@@ -413,7 +416,10 @@ class PostResource extends Resource
 
                 // Created at
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
+                    ->formatStateUsing(function ($state) {
+                        if (!$state) return null;
+                        return \App\Support\TimezoneHelper::formatInUserTimezone($state);
+                    })
                     ->sortable(),
 
                 // Platform status with detailed information - using Filament's native components

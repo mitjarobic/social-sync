@@ -10,3 +10,10 @@ Artisan::command('inspire', function () {
 // We now use the command 'posts:process-scheduled' instead of scheduling the job directly
 // See app/Console/Kernel.php for the scheduled command
 
+// Sync platforms for a specific user
+Artisan::command('platforms:sync-user {userId}', function ($userId) {
+    $this->info("Manually syncing platforms for user ID: {$userId}");
+    Artisan::call('platforms:sync', ['--user' => $userId]);
+    $this->info("Sync completed");
+})->purpose('Sync platforms for a specific user');
+
