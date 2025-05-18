@@ -54,7 +54,19 @@ class PostResource extends Resource
                                             ->columnSpanFull(),
 
                                         Forms\Components\Select::make('status')
-                                            ->options(PostStatus::class)
+                                            ->options(function() {
+                                                // Only show DRAFT and SCHEDULED options
+                                                $userSelectableStatuses = [
+                                                    PostStatus::DRAFT,
+                                                    PostStatus::SCHEDULED
+                                                ];
+
+                                                return collect($userSelectableStatuses)
+                                                    ->mapWithKeys(fn (PostStatus $status) => [
+                                                        $status->value => $status->label()
+                                                    ])
+                                                    ->toArray();
+                                            })
                                             ->enum(PostStatus::class)
                                             ->default(PostStatus::DRAFT->value)
                                             ->required()
@@ -104,6 +116,7 @@ class PostResource extends Resource
                                                             ->toArray();
 
                                                         return \App\Models\Platform::query()
+                                                            ->forCurrentCompany()
                                                             ->whereNotIn('id', $usedPlatformIds)
                                                             ->pluck('label', 'id');
                                                     })
@@ -130,10 +143,10 @@ class PostResource extends Resource
                                             ->columns(2)
                                             ->addActionLabel('Add Platform')
                                             ->maxItems(function () {
-                                                return Platform::count();
+                                                return Platform::forCurrentCompany()->count();
                                             })
                                             ->default(function () {
-                                                return Platform::all()->map(
+                                                return Platform::forCurrentCompany()->get()->map(
                                                     fn($platform) => ['platform_id' => $platform->id]
                                                 )->toArray();
                                             })
@@ -463,13 +476,18 @@ class PostResource extends Resource
                     Tables\Actions\EditAction::make(),
                     DeletePostAction::make('delete'),
                     Tables\Actions\Action::make('publish')
+                        ->icon('heroicon-o-paper-airplane')
+                        ->color('success')
                         ->requiresConfirmation()
+                        ->modalHeading('Publish post')
+                        ->modalDescription('Are you sure you want to publish this post to all platforms?')
+                        ->modalSubmitActionLabel('Yes, publish now')
                         ->action(function (Post $record) {
                             $record->update([
                                 'status' => \App\Enums\PostStatus::PUBLISHING
                             ]);
 
-                            \App\Jobs\DispatchPlatformPosts::dispatch($record);
+                            \App\Jobs\PublishPlatformPosts::dispatch($record);
                         })
                         ->visible(
                             fn(Post $record) =>

@@ -120,7 +120,6 @@ class FacebookService
      * Delete a post from Facebook
      *
      * @param string $postId The Facebook post ID
-     * @param string $pageToken The page access token
      * @return bool Whether the deletion was successful
      */
     public function deletePost(string $postId, string $pageToken): bool
@@ -130,10 +129,25 @@ class FacebookService
             $body = $response->getDecodedBody();
 
             // Facebook returns { "success": true } when deletion is successful
-            return $body['success'] ?? false;
+            $success = $body['success'] ?? false;
+
+            if ($success) {
+                Log::info('Successfully deleted Facebook post', [
+                    'post_id' => $postId,
+                ]);
+            } else {
+                Log::warning('Facebook returned non-success response for post deletion', [
+                    'post_id' => $postId,
+                    'response' => $body,
+                ]);
+            }
+
+            return $success;
         } catch (\Throwable $e) {
             Log::error('Failed to delete Facebook post: ' . $e->getMessage(), [
                 'post_id' => $postId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return false;

@@ -27,4 +27,9 @@ class Platform extends Model
     {
         return $this->belongsToMany(Post::class);
     }
+
+    public function scopeForCurrentCompany()
+    {
+        return $this->where('company_id', auth()->user()->currentCompany->id);
+    }
 }

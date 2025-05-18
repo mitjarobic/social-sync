@@ -55,21 +55,9 @@ class InstagramService
      * Post to Instagram feed
      * Maintains same return structure as FacebookService
      */
-    public function post(string $instagramId, string $pageToken, string $caption, ?string $imageUrl = null): array
+    public function post(string $instagramId, string $pageToken, string $caption, string $imageUrl): array
     {
-        if (!$imageUrl) {
-            throw new \Exception("Instagram requires an image for posts");
-        }
-
         try {
-            // Validate inputs
-            if (empty($instagramId)) {
-                throw new \Exception("Instagram ID is required");
-            }
-
-            if (empty($pageToken)) {
-                throw new \Exception("Page token is required");
-            }
 
             // Log the attempt
             Log::info('Attempting to post to Instagram', [
