@@ -37,7 +37,7 @@ class PlatformPostsRelationManager extends RelationManager
                         $record->status->value !== PlatformPostStatus::PUBLISHED->value &&
                         $record->status->value !== PlatformPostStatus::PUBLISHING->value
                     ),
-                DeletePlatformPostAction::make('delete')
+                DeletePlatformPostAction::forTable()
             ])
             ->bulkActions([
                 BulkActionGroup::make([

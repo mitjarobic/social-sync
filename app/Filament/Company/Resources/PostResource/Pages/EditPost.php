@@ -3,7 +3,7 @@
 namespace App\Filament\Company\Resources\PostResource\Pages;
 
 use App\Filament\Company\Resources\PostResource;
-use Filament\Actions;
+use App\Filament\Company\Resources\PostResource\Actions\DeletePostAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditPost extends EditRecord
@@ -13,7 +13,8 @@ class EditPost extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeletePostAction::forEditPage()
+                ->successRedirectUrl(PostResource::getUrl('index')),
         ];
     }
 }

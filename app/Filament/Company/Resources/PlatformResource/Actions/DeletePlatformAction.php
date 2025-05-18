@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Filament\Company\Resources\PostResource\Actions;
+namespace App\Filament\Company\Resources\PlatformResource\Actions;
 
-use App\Models\Post;
-use App\Services\PostDeletionService;
+use App\Models\Platform;
+use App\Services\PlatformDeletionService;
 use Filament\Actions\DeleteAction as HeaderDeleteAction;
 use Filament\Tables\Actions\DeleteAction as TableDeleteAction;
 use Filament\Notifications\Notification;
 
-class DeletePostAction
+class DeletePlatformAction
 {
     /**
      * Get a delete action configured for table context
@@ -36,10 +36,10 @@ class DeletePostAction
     {
         return $action
             ->requiresConfirmation()
-            ->modalHeading('Delete post')
-            ->modalDescription('Are you sure you want to delete this post? This will remove it from all platforms and cannot be undone.')
-            ->modalSubmitActionLabel('Yes, delete post')
-            ->action(function (Post $record) {
+            ->modalHeading('Delete platform?')
+            ->modalDescription('Are you sure you want to delete this platform? This action cannot be undone.')
+            ->modalSubmitActionLabel('Yes, delete platform')
+            ->action(function (Platform $record) {
                 return static::handleDeletion($record);
             });
     }
@@ -47,10 +47,10 @@ class DeletePostAction
     /**
      * Handle the actual deletion logic
      */
-    protected static function handleDeletion(Post $record): bool
+    protected static function handleDeletion(Platform $record): bool
     {
         // Use the dedicated service to handle deletion
-        $deletionService = new PostDeletionService();
+        $deletionService = new PlatformDeletionService();
         $result = $deletionService->delete($record);
 
         // Show appropriate notification based on the result

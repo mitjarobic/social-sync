@@ -13,8 +13,8 @@ use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\BulkActionGroup;
 use App\Filament\Company\Resources\PlatformPostResource\Pages;
 use App\Filament\Company\Resources\PlatformPostResource\Actions\RefreshMetricsAction;
-use App\Filament\Company\Resources\PlatformPostResource\Actions\DeletePlatformPostAction;
 use App\Filament\Company\Resources\PlatformPostResource\Actions\PublishPlatformPostAction;
+use App\Filament\Company\Resources\PlatformPostResource\Actions\DeletePlatformPostAction;
 
 class PlatformPostResource extends Resource
 {
@@ -43,7 +43,7 @@ class PlatformPostResource extends Resource
                             $record->status->value !== PlatformPostStatus::PUBLISHED->value &&
                             $record->status->value !== PlatformPostStatus::PUBLISHING->value
                         ),
-                    DeletePlatformPostAction::make('delete'),
+                    DeletePlatformPostAction::forTable(),
                 ])->dropdown(true)
             ])
             ->bulkActions([

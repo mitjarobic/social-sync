@@ -15,8 +15,8 @@ use App\Support\ImageStore;
 use Filament\Resources\Resource;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
-use App\Filament\Company\Resources\PostResource\Pages;
 use App\Filament\Company\Resources\PostResource\Actions\DeletePostAction;
+use App\Filament\Company\Resources\PostResource\Pages;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use App\Filament\Company\Resources\PlatformPostRelationManagerResource\RelationManagers\PlatformPostsRelationManager;
 
@@ -500,7 +500,7 @@ class PostResource extends Resource
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\EditAction::make(),
-                    DeletePostAction::make('delete'),
+                    DeletePostAction::forTable(),
                     Tables\Actions\Action::make('publish')
                         ->icon('heroicon-o-paper-airplane')
                         ->color('success')

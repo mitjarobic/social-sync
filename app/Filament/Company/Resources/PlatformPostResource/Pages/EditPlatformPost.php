@@ -3,7 +3,7 @@
 namespace App\Filament\Company\Resources\PlatformPostResource\Pages;
 
 use App\Filament\Company\Resources\PlatformPostResource;
-use Filament\Actions;
+use App\Filament\Company\Resources\PlatformPostResource\Actions\DeletePlatformPostAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditPlatformPost extends EditRecord
@@ -13,7 +13,8 @@ class EditPlatformPost extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeletePlatformPostAction::forEditPage()
+                ->successRedirectUrl(PlatformPostResource::getUrl('index')),
         ];
     }
 }
