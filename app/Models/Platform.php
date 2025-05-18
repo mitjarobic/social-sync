@@ -31,6 +31,11 @@ class Platform extends BaseModel
         return $this->belongsToMany(Post::class);
     }
 
+    public function platformPosts()
+    {
+        return $this->hasMany(PlatformPost::class);
+    }
+
     /**
      * Scope a query to only include platforms for the current company.
      *

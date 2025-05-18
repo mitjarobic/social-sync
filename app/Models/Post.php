@@ -101,14 +101,14 @@ class Post extends BaseModel
         // Determine the new status based on platform posts
         $newStatus = null;
 
-        if ($this->platformPosts->contains('status', 'failed')) {
+        if ($this->platformPosts->contains('status', \App\Enums\PlatformPostStatus::FAILED)) {
             $newStatus = \App\Enums\PostStatus::FAILED;
-        } elseif ($this->platformPosts->contains('status', 'published') &&
-                 !$this->platformPosts->contains(fn($pp) => $pp->status !== 'published')) {
+        } elseif ($this->platformPosts->contains('status', \App\Enums\PlatformPostStatus::PUBLISHED) &&
+                 !$this->platformPosts->contains(fn($pp) => $pp->status !== \App\Enums\PlatformPostStatus::PUBLISHED)) {
             $newStatus = \App\Enums\PostStatus::PUBLISHED;
-        } elseif ($this->platformPosts->contains('status', 'publishing')) {
+        } elseif ($this->platformPosts->contains('status', \App\Enums\PlatformPostStatus::PUBLISHING)) {
             $newStatus = \App\Enums\PostStatus::PUBLISHING;
-        } elseif ($this->platformPosts->contains('status', 'queued')) {
+        } elseif ($this->platformPosts->contains('status', \App\Enums\PlatformPostStatus::QUEUED)) {
             $newStatus = \App\Enums\PostStatus::SCHEDULED;
         } else {
             $newStatus = \App\Enums\PostStatus::DRAFT;

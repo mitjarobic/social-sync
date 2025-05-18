@@ -13,6 +13,8 @@ use App\Support\ImageStore;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use App\Services\PlatformDeletionService;
+use Filament\Notifications\Notification;
 
 class PlatformResource extends Resource
 {
@@ -149,7 +151,40 @@ class PlatformResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\DeleteAction::make()
+                        ->requiresConfirmation()
+                        ->modalHeading('Delete platform?')
+                        ->modalDescription('Are you sure you want to delete this platform? This action cannot be undone.')
+                        ->modalSubmitActionLabel('Yes, delete platform')
+                        ->action(function (Platform $record) {
+                            // Use the dedicated service to handle deletion
+                            $deletionService = new PlatformDeletionService();
+                            $result = $deletionService->delete($record);
+
+                            // Show appropriate notification based on the result
+                            if ($result['success']) {
+                                Notification::make()
+                                    ->success()
+                                    ->title('Success')
+                                    ->body($result['message'])
+                                    ->send();
+
+                                // Let the default action continue (which will delete the record)
+                                return;
+                            } else {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Error')
+                                    ->body($result['message'])
+                                    ->send();
+
+                                // Cancel the deletion process but close the modal
+                                return false;
+                            }
+                        }),
+                ])->dropdown(true)
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

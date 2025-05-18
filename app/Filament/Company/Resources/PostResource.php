@@ -54,7 +54,7 @@ class PostResource extends Resource
                                             ->columnSpanFull(),
 
                                         Forms\Components\Select::make('status')
-                                            ->options(function() {
+                                            ->options(function () {
                                                 // Only show DRAFT and SCHEDULED options
                                                 $userSelectableStatuses = [
                                                     PostStatus::DRAFT,
@@ -62,7 +62,7 @@ class PostResource extends Resource
                                                 ];
 
                                                 return collect($userSelectableStatuses)
-                                                    ->mapWithKeys(fn (PostStatus $status) => [
+                                                    ->mapWithKeys(fn(PostStatus $status) => [
                                                         $status->value => $status->label()
                                                     ])
                                                     ->toArray();
@@ -370,9 +370,29 @@ class PostResource extends Resource
         return $table
             ->defaultSort('created_at', 'desc')
             ->columns([
+                Tables\Columns\ImageColumn::make('image_path')
+                    ->label('')
+                    ->size(30)
+                    ->getStateUsing(function ($record) {
+                        return $record->image_path ? ImageStore::url($record->image_path) : null;
+                    }),
+
                 Tables\Columns\TextColumn::make('content')
+                    ->label('Caption')
                     ->limit(50)
                     ->searchable(),
+
+                Tables\Columns\TextColumn::make('image_content')
+                    ->label('Image Text')
+                    ->limit(50)
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('image_author')
+                    ->label('Image Author')
+                    ->limit(50)
+                    ->searchable(),
+
+
 
                 // Platforms column with icons - using Filament's native components
                 Tables\Columns\TextColumn::make('platformPosts')
@@ -399,7 +419,7 @@ class PostResource extends Resource
                         return $items;
                     })
                     ->badge()
-                    ->color(fn (string $state): string => match (true) {
+                    ->color(fn(string $state): string => match (true) {
                         str_contains($state, 'Published') => 'success',
                         str_contains($state, 'Publishing') => 'warning',
                         str_contains($state, 'Queued') => 'info',
@@ -422,57 +442,57 @@ class PostResource extends Resource
                     })
                     ->sortable(),
 
-                // Platform status with detailed information - using Filament's native components
-                Tables\Columns\TextColumn::make('platform_status')
-                    ->label('Platform Status')
-                    ->state(function (Post $record): array {
-                        // Reload the relationship to ensure we have the latest data
-                        $platformPosts = $record->platformPosts()->get();
+                // // Platform status with detailed information - using Filament's native components
+                // Tables\Columns\TextColumn::make('platform_status')
+                //     ->label('Platform Status')
+                //     ->state(function (Post $record): array {
+                //         // Reload the relationship to ensure we have the latest data
+                //         $platformPosts = $record->platformPosts()->get();
 
-                        if ($platformPosts->isEmpty()) {
-                            return ['No platforms'];
-                        }
+                //         if ($platformPosts->isEmpty()) {
+                //             return ['No platforms'];
+                //         }
 
-                        // Group by status
-                        $groupedByStatus = $platformPosts->groupBy(function ($platformPost) {
-                            return $platformPost->status->value;
-                        });
+                //         // Group by status
+                //         $groupedByStatus = $platformPosts->groupBy(function ($platformPost) {
+                //             return $platformPost->status->value;
+                //         });
 
-                        // Define the order we want statuses to appear
-                        $statusOrder = [
-                            \App\Enums\PlatformPostStatus::PUBLISHED->value,
-                            \App\Enums\PlatformPostStatus::PUBLISHING->value,
-                            \App\Enums\PlatformPostStatus::QUEUED->value,
-                            \App\Enums\PlatformPostStatus::FAILED->value,
-                            \App\Enums\PlatformPostStatus::DRAFT->value,
-                        ];
+                //         // Define the order we want statuses to appear
+                //         $statusOrder = [
+                //             \App\Enums\PlatformPostStatus::PUBLISHED->value,
+                //             \App\Enums\PlatformPostStatus::PUBLISHING->value,
+                //             \App\Enums\PlatformPostStatus::QUEUED->value,
+                //             \App\Enums\PlatformPostStatus::FAILED->value,
+                //             \App\Enums\PlatformPostStatus::DRAFT->value,
+                //         ];
 
-                        $items = [];
+                //         $items = [];
 
-                        // Sort and format the statuses
-                        foreach ($statusOrder as $status) {
-                            if (!$groupedByStatus->has($status)) {
-                                continue;
-                            }
+                //         // Sort and format the statuses
+                //         foreach ($statusOrder as $status) {
+                //             if (!$groupedByStatus->has($status)) {
+                //                 continue;
+                //             }
 
-                            $count = $groupedByStatus->get($status)->count();
-                            $label = ucfirst($status);
+                //             $count = $groupedByStatus->get($status)->count();
+                //             $label = ucfirst($status);
 
-                            $items[] = "{$count} {$label}";
-                        }
+                //             $items[] = "{$count} {$label}";
+                //         }
 
-                        return $items;
-                    })
-                    ->badge()
-                    ->color(fn (string $state): string => match (true) {
-                        str_contains($state, 'Published') => 'success',
-                        str_contains($state, 'Publishing') => 'warning',
-                        str_contains($state, 'Queued') => 'info',
-                        str_contains($state, 'Failed') => 'danger',
-                        default => 'gray',
-                    })
-                    ->separator(' ')
-                    ->listWithLineBreaks()
+                //         return $items;
+                //     })
+                //     ->badge()
+                //     ->color(fn (string $state): string => match (true) {
+                //         str_contains($state, 'Published') => 'success',
+                //         str_contains($state, 'Publishing') => 'warning',
+                //         str_contains($state, 'Queued') => 'info',
+                //         str_contains($state, 'Failed') => 'danger',
+                //         default => 'gray',
+                //     })
+                //     ->separator(' ')
+                //     ->listWithLineBreaks()
             ])
             ->filters([
                 //
@@ -499,8 +519,8 @@ class PostResource extends Resource
                             fn(Post $record) =>
                             // Only show for scheduled posts that aren't already published or publishing
                             $record->status === \App\Enums\PostStatus::SCHEDULED &&
-                            !$record->platformPosts()->where('status', \App\Enums\PlatformPostStatus::PUBLISHED)->exists() &&
-                            !$record->platformPosts()->where('status', \App\Enums\PlatformPostStatus::PUBLISHING)->exists()
+                                !$record->platformPosts()->where('status', \App\Enums\PlatformPostStatus::PUBLISHED)->exists() &&
+                                !$record->platformPosts()->where('status', \App\Enums\PlatformPostStatus::PUBLISHING)->exists()
                         )
                 ])->dropdown(true)
             ])
