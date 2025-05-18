@@ -12,8 +12,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // Dispatch scheduled posts every minute
-        $schedule->command('posts:dispatch-scheduled')->everyMinute();
+        // Process scheduled posts every minute
+        $schedule->command('posts:process-scheduled')->everyMinute();
 
         // Update metrics for platform posts every hour
         $schedule->command('posts:refresh-metrics')->hourly();

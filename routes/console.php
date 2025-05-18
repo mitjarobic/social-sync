@@ -1,13 +1,12 @@
 <?php
 
-use App\Jobs\DispatchScheduledPosts;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::job(new DispatchScheduledPosts)->everyMinute();
+// We now use the command 'posts:process-scheduled' instead of scheduling the job directly
+// See app/Console/Kernel.php for the scheduled command
 
