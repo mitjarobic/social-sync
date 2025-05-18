@@ -78,7 +78,8 @@ class PlatformPostSchema
                 ->icon('heroicon-o-share')
                 ->color('info')
                 ->alignCenter()
-                ->sortable(),
+                ->sortable()
+                ->tooltip('Number of shares. Note: Instagram regular posts will always show 0 shares as Instagram does not provide share metrics for regular posts through their API (only for stories).'),
             Tables\Columns\TextColumn::make('external_url')
                 ->label('URL')
                 ->formatStateUsing(fn() => 'Link')

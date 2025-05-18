@@ -25,7 +25,7 @@ class PostToInstagram implements ShouldQueue
         try {
             $imageUrl = DevHelper::withNgrokUrl(ImageStore::url($this->platformPost->post->image_path));
 
-            // Get the user's Facebook token since Instagram uses the same token
+            // For Instagram, we need to use the user's Facebook token
             $token = $this->platformPost->user->facebook_token;
 
             if (!$token) {
@@ -78,7 +78,7 @@ class PostToInstagram implements ShouldQueue
                 'platform_id' => $this->platformPost->platform->id,
                 'external_id' => $this->platformPost->platform->external_id,
                 'user_id' => $this->platformPost->user->id ?? null,
-                'facebook_token_exists' => !empty($token),
+                'platform_token_exists' => !empty($token),
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);

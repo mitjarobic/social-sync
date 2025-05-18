@@ -22,7 +22,7 @@ class PlatformPost extends Model
         'reach',
         'likes',
         'comments',
-        'shares',
+        'shares',  // Note: For Instagram regular posts, shares will always be 0 as Instagram API doesn't provide share metrics for regular posts (only for stories)
         'metrics_updated_at',
         'scheduled_at',
         'posted_at',

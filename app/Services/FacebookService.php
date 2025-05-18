@@ -155,6 +155,46 @@ class FacebookService
     }
 
     /**
+     * Get metrics for a Facebook post by its full ID
+     *
+     * @param string $postId The Facebook post ID (can be in format pageId_postId)
+     * @param string $pageToken The page access token
+     * @return array The metrics data
+     */
+    public function getPostMetrics(string $postId, string $pageToken): array
+    {
+        // Check if the post ID contains a page ID (format: pageId_postId)
+        if (str_contains($postId, '_')) {
+            [$pageId, $postOnlyId] = explode('_', $postId);
+            return $this->getMetrics($pageId, $postOnlyId, $pageToken);
+        }
+
+        // If we don't have a page ID, try to get it from the user's pages
+        $pages = $this->getRawPageData();
+        foreach ($pages as $page) {
+            try {
+                return $this->getMetrics($page['id'], $postId, $page['access_token']);
+            } catch (\Exception $e) {
+                // Try the next page
+                Log::debug('Failed to get metrics from page', [
+                    'page_id' => $page['id'],
+                    'post_id' => $postId,
+                    'error' => $e->getMessage()
+                ]);
+                continue;
+            }
+        }
+
+        // If we couldn't find the post on any page, return zeros
+        return [
+            'reach' => 0,
+            'likes' => 0,
+            'comments' => 0,
+            'shares' => 0,
+        ];
+    }
+
+    /**
      * Get metrics for a Facebook post
      *
      * @param string $pageId The Facebook page ID
@@ -170,34 +210,10 @@ class FacebookService
             $comments = 0;
             $shares = 0;
 
-            // Try to get post insights for reach
-            try {
-                $insightsResponse = $this->fb->get(
-                    "/{$pageId}_{$postId}/insights?metric=post_impressions",
-                    $pageToken
-                );
-
-                $insights = $insightsResponse->getDecodedBody();
-
-                if (isset($insights['data'])) {
-                    foreach ($insights['data'] as $item) {
-                        if ($item['name'] === 'post_impressions') {
-                            $reach = $item['values'][0]['value'] ?? 0;
-                        }
-                    }
-                }
-            } catch (\Throwable $insightsError) {
-                // Log the insights error but continue to get other metrics
-                Log::warning('Failed to get Facebook post insights: ' . $insightsError->getMessage(), [
-                    'page_id' => $pageId,
-                    'post_id' => $postId,
-                ]);
-            }
-
-            // Get public fields (reactions, comments, shares)
+            // Step 1: Get engagement metrics using the exact endpoint you provided
             try {
                 $fieldsResponse = $this->fb->get(
-                    "/{$pageId}_{$postId}?fields=reactions.summary(true),comments.summary(true),shares",
+                    "/{$pageId}_{$postId}?fields=shares,comments.summary(true),reactions.summary(true)",
                     $pageToken
                 );
                 $fields = $fieldsResponse->getDecodedBody();
@@ -205,11 +221,73 @@ class FacebookService
                 $likes = $fields['reactions']['summary']['total_count'] ?? 0;
                 $comments = $fields['comments']['summary']['total_count'] ?? 0;
                 $shares = $fields['shares']['count'] ?? 0;
+
+                Log::info('Retrieved Facebook engagement metrics', [
+                    'page_id' => $pageId,
+                    'post_id' => $postId,
+                    'likes' => $likes,
+                    'comments' => $comments,
+                    'shares' => $shares
+                ]);
             } catch (\Throwable $fieldsError) {
                 // Log the fields error but continue with zeros
                 Log::warning('Failed to get Facebook post fields: ' . $fieldsError->getMessage(), [
                     'page_id' => $pageId,
                     'post_id' => $postId,
+                ]);
+            }
+
+            // Step 2: Get reach using the exact insights endpoint you provided
+            try {
+                $insightsResponse = $this->fb->get(
+                    "/{$pageId}_{$postId}/insights?metric=post_reactions_by_type_total,post_impressions,post_clicks,post_impressions_unique",
+                    $pageToken
+                );
+
+                $insights = $insightsResponse->getDecodedBody();
+
+                // Look for post_impressions_unique first (true reach)
+                if (isset($insights['data'])) {
+                    foreach ($insights['data'] as $item) {
+                        if ($item['name'] === 'post_impressions_unique') {
+                            $reach = $item['values'][0]['value'] ?? 0;
+                            Log::info('Found post_impressions_unique', [
+                                'page_id' => $pageId,
+                                'post_id' => $postId,
+                                'reach' => $reach
+                            ]);
+                            break;
+                        }
+                    }
+
+                    // If we couldn't find post_impressions_unique, try post_impressions
+                    if ($reach === 0) {
+                        foreach ($insights['data'] as $item) {
+                            if ($item['name'] === 'post_impressions') {
+                                $reach = $item['values'][0]['value'] ?? 0;
+                                Log::info('Found post_impressions', [
+                                    'page_id' => $pageId,
+                                    'post_id' => $postId,
+                                    'reach' => $reach
+                                ]);
+                                break;
+                            }
+                        }
+                    }
+                }
+            } catch (\Throwable $insightsError) {
+                Log::warning('Failed to get Facebook post insights: ' . $insightsError->getMessage(), [
+                    'page_id' => $pageId,
+                    'post_id' => $postId,
+                ]);
+            }
+
+            // If reach is still 0, set it to 1 as you mentioned
+            if ($reach === 0) {
+                $reach = 1;
+                Log::info('Setting reach to 1 as per requirement', [
+                    'page_id' => $pageId,
+                    'post_id' => $postId
                 ]);
             }
 
@@ -226,8 +304,9 @@ class FacebookService
                 'post_id' => $postId,
             ]);
 
+            // Even in case of error, return reach as 1
             return [
-                'reach' => 0,
+                'reach' => 1,
                 'likes' => 0,
                 'comments' => 0,
                 'shares' => 0,

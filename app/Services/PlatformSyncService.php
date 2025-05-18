@@ -57,7 +57,7 @@ class PlatformSyncService
                     'label' => $ig['name'],
                     'external_name' => $ig['name'],
                     'external_url' => "https://instagram.com/{$ig['username']}",
-                    'external_token' => null, // IG uses FB page token
+                    'external_token' => null, // Instagram uses the user's Facebook token, not stored here
                     'external_picture_url' => $imageUrl
                 ]
             );

@@ -25,10 +25,56 @@ class UpdatePlatformPostMetrics implements ShouldQueue
     }
 
     /**
-     * Execute the job.
+     * Get Instagram metrics using the user's Facebook token
+     *
+     * @param \App\Models\Platform $platform
+     * @param string $externalId
+     * @return array
      */
+    private function getInstagramMetrics($platform, $externalId): array
+    {
+        // For Instagram, we need to use the user's Facebook token
+        // First try to get the user from the platform post
+        $user = $this->platformPost->user;
+
+        // If that doesn't work, try to get it from the company
+        if (!$user || !$user->facebook_token) {
+            $company = $this->platformPost->company;
+            if ($company && $company->user) {
+                $user = $company->user;
+            }
+        }
+
+        // If we still don't have a user with a token, log an error and return empty metrics
+        if (!$user || !$user->facebook_token) {
+            Log::error('No Facebook token found for Instagram metrics', [
+                'platform_post_id' => $this->platformPost->id,
+                'platform_id' => $platform->id,
+                'external_id' => $externalId
+            ]);
+
+            return [
+                'reach' => 0,
+                'likes' => 0,
+                'comments' => 0,
+                'shares' => 0,
+            ];
+        }
+
+        // Now we have a user with a token, so we can get the metrics
+        $instagramService = new InstagramService($user);
+        return $instagramService->getMetrics(
+            $platform->external_id,
+            $externalId,
+            $user->facebook_token
+        );
+    }
+
     public function handle(): void
     {
+        // Load necessary relationships
+        $this->platformPost->load(['platform', 'company.user', 'user']);
+
         // Only update metrics for posts with an external ID
         if (!$this->platformPost->external_id) {
             return;
@@ -56,11 +102,7 @@ class UpdatePlatformPostMetrics implements ShouldQueue
                     $externalId,
                     $token
                 ),
-                'instagram' => app(InstagramService::class)->getMetrics(
-                    $platform->external_id,
-                    $externalId,
-                    $token
-                ),
+                'instagram' => $this->getInstagramMetrics($platform, $externalId),
                 'x' => app(XService::class)->getMetrics(
                     $platform->external_id,
                     $externalId,

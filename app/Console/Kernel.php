@@ -16,7 +16,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('posts:dispatch-scheduled')->everyMinute();
 
         // Update metrics for platform posts every hour
-        $schedule->command('platform-post:update-metrics --published')->hourly();
+        $schedule->command('posts:refresh-metrics')->hourly();
     }
 
     /**

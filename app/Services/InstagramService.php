@@ -214,7 +214,7 @@ class InstagramService
                 'reach' => $reach,
                 'likes' => $likes,
                 'comments' => $comments,
-                'shares' => 0, // Instagram doesn't have shares
+                'shares' => 0, // Instagram doesn't provide share metrics for regular posts (only for stories)
             ];
         } catch (\Throwable $e) {
             // Log the error but return empty metrics
@@ -239,4 +239,50 @@ class InstagramService
      * Note: Instagram Graph API does not support deleting posts.
      * Posts can only be deleted manually through the Instagram app.
      */
+
+    /**
+     * Get metrics for an Instagram post by its ID
+     *
+     * @param string $postId The Instagram post ID
+     * @param string $token The Facebook access token
+     * @return array The metrics data
+     */
+    public function getPostMetrics(string $postId, string $token): array
+    {
+        // Get all Instagram accounts
+        $accounts = $this->getRawInstagramAccounts();
+
+        if (empty($accounts)) {
+            Log::warning('No Instagram accounts found for user');
+            return [
+                'reach' => 0,
+                'likes' => 0,
+                'comments' => 0,
+                'shares' => 0,
+            ];
+        }
+
+        // Try each Instagram account
+        foreach ($accounts as $account) {
+            try {
+                return $this->getMetrics($account['id'], $postId, $token);
+            } catch (\Exception $e) {
+                // Log the error but try the next account
+                Log::debug('Failed to get metrics from Instagram account', [
+                    'instagram_id' => $account['id'],
+                    'post_id' => $postId,
+                    'error' => $e->getMessage()
+                ]);
+                continue;
+            }
+        }
+
+        // If we couldn't find the post on any account, return zeros
+        return [
+            'reach' => 0,
+            'likes' => 0,
+            'comments' => 0,
+            'shares' => 0,
+        ];
+    }
 }

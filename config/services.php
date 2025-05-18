@@ -37,7 +37,7 @@ return [
     'facebook' => [
         'app_id' => env('FACEBOOK_APP_ID'),
         'app_secret' => env('FACEBOOK_APP_SECRET'),
-        'user_token' => env('FACEBOOK_USER_TOKEN'),
+        'webhook_verify_token' => env('FACEBOOK_WEBHOOK_VERIFY_TOKEN'),
     ],
     'x' => [
         'consumer_key' => env('X_API_KEY'),

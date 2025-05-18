@@ -49,5 +49,6 @@ Route::get('/sync-platforms', function () {
     (new \App\Services\PlatformSyncService(auth()->user()))->syncPlatforms();
 })->name('sync-platforms');
 
-
+// Note: Facebook & Instagram Webhook Routes are in api.php
+// OAuth routes are here in web.php because they're user-facing
 
