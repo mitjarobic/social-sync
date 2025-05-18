@@ -4,6 +4,7 @@ namespace App\Filament\Company\Resources;
 
 use App\Filament\Company\Resources\Schemas\PlatformPostSchema;
 use App\Models\PlatformPost;
+use App\Enums\PlatformPostStatus;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables\Table;
@@ -13,6 +14,7 @@ use Filament\Tables\Actions\BulkActionGroup;
 use App\Filament\Company\Resources\PlatformPostResource\Pages;
 use App\Filament\Company\Resources\PlatformPostResource\Actions\RefreshMetricsAction;
 use App\Filament\Company\Resources\PlatformPostResource\Actions\DeletePlatformPostAction;
+use App\Filament\Company\Resources\PlatformPostResource\Actions\PublishPlatformPostAction;
 
 class PlatformPostResource extends Resource
 {
@@ -36,6 +38,11 @@ class PlatformPostResource extends Resource
                 ActionGroup::make([
                     EditAction::make(),
                     RefreshMetricsAction::make(),
+                    PublishPlatformPostAction::make()
+                        ->visible(fn (PlatformPost $record): bool =>
+                            $record->status->value !== PlatformPostStatus::PUBLISHED->value &&
+                            $record->status->value !== PlatformPostStatus::PUBLISHING->value
+                        ),
                     DeletePlatformPostAction::make('delete'),
                 ])->dropdown(true)
             ])

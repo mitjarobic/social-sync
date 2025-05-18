@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PlatformPostStatus;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
 
 
 class PlatformPost extends Model
@@ -48,6 +49,11 @@ class PlatformPost extends Model
     public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'company_id', 'current_company_id');
     }
 
     protected static function booted()

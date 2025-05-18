@@ -62,27 +62,100 @@ class InstagramService
         }
 
         try {
-            // Create media container
-            $creationResponse = $this->fb->post("/{$instagramId}/media", [
-                'caption' => $caption,
-                'image_url' => $imageUrl,
-            ], $pageToken);
+            // Validate inputs
+            if (empty($instagramId)) {
+                throw new \Exception("Instagram ID is required");
+            }
 
-            $creationId = $creationResponse->getDecodedBody()['id'];
+            if (empty($pageToken)) {
+                throw new \Exception("Page token is required");
+            }
+
+            // Log the attempt
+            Log::info('Attempting to post to Instagram', [
+                'instagram_id' => $instagramId,
+                'has_token' => !empty($pageToken),
+                'has_image' => !empty($imageUrl)
+            ]);
+
+            // Create media container
+            try {
+                $creationResponse = $this->fb->post("/{$instagramId}/media", [
+                    'caption' => $caption,
+                    'image_url' => $imageUrl,
+                ], $pageToken);
+
+                $creationId = $creationResponse->getDecodedBody()['id'] ?? null;
+
+                if (empty($creationId)) {
+                    throw new \Exception("Failed to get creation ID from Instagram API response");
+                }
+
+                // Log successful media container creation
+                Log::info('Successfully created Instagram media container', [
+                    'instagram_id' => $instagramId,
+                    'creation_id' => $creationId
+                ]);
+            } catch (\Throwable $creationError) {
+                $errorMessage = $creationError->getMessage();
+
+                // Check for specific permission errors
+                if (strpos($errorMessage, 'Application does not have permission') !== false) {
+                    $detailedMessage = "Your Facebook app doesn't have the necessary permissions to post to Instagram. " .
+                                      "Please make sure your app has 'instagram_basic', 'instagram_content_publish', and 'pages_read_engagement' permissions, " .
+                                      "and that the user has granted these permissions to your app.";
+                } else {
+                    $detailedMessage = "Failed to create Instagram media container: " . $errorMessage;
+                }
+
+                Log::error('Failed to create Instagram media container', [
+                    'instagram_id' => $instagramId,
+                    'error' => $errorMessage,
+                    'detailed_message' => $detailedMessage,
+                    'trace' => $creationError->getTraceAsString()
+                ]);
+
+                throw new \Exception($detailedMessage);
+            }
 
             // Publish the container
-            $publishResponse = $this->fb->post("/{$instagramId}/media_publish", [
-                'creation_id' => $creationId
-            ], $pageToken);
+            try {
+                $publishResponse = $this->fb->post("/{$instagramId}/media_publish", [
+                    'creation_id' => $creationId
+                ], $pageToken);
 
-            $postData = $publishResponse->getDecodedBody();
-            $postId = $postData['id'] ?? null;
+                $postData = $publishResponse->getDecodedBody();
+                $postId = $postData['id'] ?? null;
 
-            return [
-                'response' => $postData,
-                'url' => $postId ? "https://www.instagram.com/p/{$postId}/" : null,
-            ];
+                if (empty($postId)) {
+                    throw new \Exception("Failed to get post ID from Instagram API response");
+                }
+
+                // Log successful publishing
+                Log::info('Successfully published to Instagram', [
+                    'instagram_id' => $instagramId,
+                    'post_id' => $postId
+                ]);
+
+                return [
+                    'response' => $postData,
+                    'url' => "https://www.instagram.com/p/{$postId}/",
+                ];
+            } catch (\Throwable $publishError) {
+                Log::error('Failed to publish Instagram container', [
+                    'instagram_id' => $instagramId,
+                    'creation_id' => $creationId,
+                    'error' => $publishError->getMessage(),
+                    'trace' => $publishError->getTraceAsString()
+                ]);
+                throw new \Exception("Failed to publish Instagram container: " . $publishError->getMessage());
+            }
         } catch (\Throwable $e) {
+            Log::error('Failed to post to Instagram', [
+                'instagram_id' => $instagramId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             throw new \Exception("Failed to post to Instagram: " . $e->getMessage());
         }
     }
@@ -173,4 +246,9 @@ class InstagramService
     }
 
     // Removed unused findMetricValue method
+
+    /**
+     * Note: Instagram Graph API does not support deleting posts.
+     * Posts can only be deleted manually through the Instagram app.
+     */
 }

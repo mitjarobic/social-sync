@@ -18,7 +18,9 @@ class FacebookController extends Controller
             'pages_read_engagement',
             'pages_manage_posts',
             'pages_read_user_content',
-            'instagram_basic',
+            'instagram_basic', 
+            'instagram_content_publish',
+            'pages_read_engagement',
             'instagram_manage_insights',
             'business_management', // ✅ required for full access under Business Manager
         ];

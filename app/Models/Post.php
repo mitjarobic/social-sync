@@ -64,7 +64,7 @@ class Post extends Model
                     ->where('status', \App\Enums\PlatformPostStatus::DRAFT)
                     ->update(['status' => \App\Enums\PlatformPostStatus::QUEUED]);
 
-                \App\Jobs\DispatchPlatformPosts::dispatch($post);
+                \App\Jobs\PublishPlatformPosts::dispatch($post);
             }
 
             if ($post->status === \App\Enums\PostStatus::SCHEDULED) {
@@ -128,7 +128,6 @@ class Post extends Model
 
     public function createOrUpdateImageIfNecessary()
     {
-
         if ($this->isDirty('image_content') ||
             $this->isDirty('image_author') ||
             $this->isDirty('image_font') ||
