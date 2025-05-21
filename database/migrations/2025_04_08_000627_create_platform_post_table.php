@@ -34,6 +34,13 @@ return new class extends Migration
             $table->timestamp('posted_at')->nullable();
             $table->timestamps();
 
+            // Metrics
+            $table->integer('reach')->default(0);
+            $table->integer('likes')->default(0);
+            $table->integer('comments')->default(0);
+            $table->integer('shares')->default(0);
+            $table->timestamp('metrics_updated_at')->nullable();
+
             // Indexes for performance
             $table->index(['post_id', 'status']);
             $table->index(['platform_id', 'status']);

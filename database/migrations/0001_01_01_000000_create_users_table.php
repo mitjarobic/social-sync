@@ -25,6 +25,7 @@ return new class extends Migration
             $table->foreignId('current_connected_account_id')->nullable();
             $table->string('profile_photo_path', 2048)->nullable();
             $table->string('facebook_token', 300)->nullable();
+            $table->string('timezone')->default('UTC');
             $table->timestamps();
         });
 

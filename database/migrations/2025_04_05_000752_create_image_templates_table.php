@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('theme_id')->nullable()->constrained()->nullOnDelete();
             $table->enum('background_type', ['color', 'image'])->default('color');
             $table->string('background_color')->nullable();
             $table->string('background_image')->nullable();

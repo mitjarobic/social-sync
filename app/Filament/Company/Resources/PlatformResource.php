@@ -36,6 +36,9 @@ class PlatformResource extends Resource
                 ->schema([
                     Forms\Components\Grid::make()
                         ->schema([
+                            Forms\Components\Toggle::make('is_active')
+                                ->label('Active')
+                                ->required(),
                             Forms\Components\TextInput::make('label')
                                 ->required()
                                 ->unique(ignoreRecord: true)
@@ -90,7 +93,6 @@ class PlatformResource extends Resource
                             ->dehydrated(fn(Get $get): bool => filled($get('provider'))),
                         Forms\Components\TextInput::make('label')
                             ->required()
-                            ->unique(ignoreRecord: true)
                             ->label('Label')
                             ->disabled(fn(Get $get): bool => blank($get('provider')))
                             ->dehydrated(fn(Get $get): bool => filled($get('provider'))),
@@ -121,6 +123,18 @@ class PlatformResource extends Resource
                     ->label('Type')
                     ->sortable()
                     ->searchable(),
+                Tables\Columns\IconColumn::make('is_active')
+                    ->label('Active')
+                    ->trueIcon('heroicon-o-check-badge')
+                    ->falseIcon('heroicon-o-x-mark')
+                    ->action(function ($record) {
+                        $record->update([
+                            'is_active' => ! $record->is_active,
+                        ]);
+                    })
+                    ->tooltip(fn($record) => $record->is_active ? 'Click to deactivate' : 'Click to activate')
+                    ->sortable()
+                    ->boolean(),
                 Tables\Columns\TextColumn::make('external_name')
                     ->label('Name')
                     ->sortable()
@@ -149,7 +163,11 @@ class PlatformResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                //
+                \Filament\Tables\Filters\Filter::make('active')
+                    ->label('Active Only')
+                    ->toggle()
+                    ->default(true)
+                    ->query(fn($query) => $query->where('is_active', true)),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
@@ -222,14 +240,6 @@ class PlatformResource extends Resource
 
         if ($platform) {
             $set('label', $platform->external_name);
-            $set('external_name', $platform->external_name);
-            $set('external_url', $platform->external_url);
-            $set('external_picture_url', $platform->external_picture_url);
-
-            // Only set external_token for Facebook as it's needed for posting
-            if ($provider === 'facebook') {
-                $set('external_token', $platform->external_token);
-            }
         }
     }
 }
