@@ -11,6 +11,7 @@ use Filament\Facades\Filament;
 use Filament\Navigation\MenuItem;
 use Filament\Support\Colors\Color;
 use Illuminate\Support\Facades\Auth;
+use Filament\Navigation\NavigationGroup;
 use Filament\Http\Middleware\Authenticate;
 use App\Actions\FilamentCompanies\DeleteUser;
 use Wallo\FilamentCompanies\Pages\Auth\Login;
@@ -88,6 +89,10 @@ class FilamentCompaniesServiceProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Company/Pages'), for: 'App\\Filament\\Company\\Pages')
             ->pages([
                 Pages\Dashboard::class,
+            ])
+            ->navigationGroups([
+                NavigationGroup::make()->label('Posting'),
+                NavigationGroup::make()->label('Image Settings'),
             ])
             ->userMenuItems([
                 'profile' => MenuItem::make()

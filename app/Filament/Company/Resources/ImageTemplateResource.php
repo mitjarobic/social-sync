@@ -2,22 +2,23 @@
 
 namespace App\Filament\Company\Resources;
 
-use App\Filament\Company\Resources\ImageTemplateResource\Pages;
-use App\Helpers\FontHelper;
-use App\Models\ImageTemplate;
-use App\Models\Theme;
-
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
+use App\Models\Theme;
+use Filament\Forms\Form;
+
 use Filament\Tables\Table;
+use App\Helpers\FontHelper;
+use App\Support\ImageStore;
+use App\Models\ImageTemplate;
+use Filament\Resources\Resource;
+use Filament\Forms\Components\Radio;
 use Illuminate\Support\Facades\Auth;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\TextInput;
+use App\Filament\Company\Resources\ImageTemplateResource\Pages;
 
 class ImageTemplateResource extends Resource
 {
@@ -27,7 +28,7 @@ class ImageTemplateResource extends Resource
 
     protected static ?string $navigationLabel = 'Image Templates';
 
-    protected static ?string $navigationGroup = 'Content';
+    protected static ?string $navigationGroup = 'Image Settings';
 
     public static function form(Form $form): Form
     {
@@ -36,7 +37,6 @@ class ImageTemplateResource extends Resource
                 Forms\Components\Tabs::make('Theme Settings')
                     ->columnSpanFull()
                     ->tabs([
-                        // Tab 1: General Information
                         Forms\Components\Tabs\Tab::make('Template Information')
                             ->schema([
                                 Forms\Components\Grid::make(2)
@@ -157,7 +157,6 @@ class ImageTemplateResource extends Resource
                                             ])
                                     ])
                             ]),
-                        // Tab 1: General Information
                         Forms\Components\Tabs\Tab::make('Background Settings')
                             ->schema([
                                 Forms\Components\Grid::make(2)
@@ -281,84 +280,82 @@ class ImageTemplateResource extends Resource
                                             ])
                                     ])
                             ]),
-                        // Tab 1: General Information
-                        Forms\Components\Tabs\Tab::make('Text Settings')
+                        Forms\Components\Tabs\Tab::make('General Text Settings')
                             ->schema([
-                                // General Text Settings
-                                Forms\Components\Section::make('General Text Settings')
+
+                                Forms\Components\Grid::make(2)
                                     ->schema([
-                                        Forms\Components\Grid::make(2)
+                                        Forms\Components\Group::make()
                                             ->schema([
-                                                Forms\Components\Group::make()
-                                                    ->schema([
-                                                        Select::make('text_alignment')
-                                                            ->label('Text Alignment')
-                                                            ->options([
-                                                                'left' => 'Left',
-                                                                'center' => 'Center',
-                                                                'right' => 'Right',
-                                                            ])
-                                                            ->default('center')
-                                                            ->selectablePlaceholder(false),
+                                                Select::make('text_alignment')
+                                                    ->label('Text Alignment')
+                                                    ->options([
+                                                        'left' => 'Left',
+                                                        'center' => 'Center',
+                                                        'right' => 'Right',
+                                                    ])
+                                                    ->default('center')
+                                                    ->selectablePlaceholder(false),
 
-                                                        Select::make('text_position')
-                                                            ->label('Text Position')
-                                                            ->options([
-                                                                'top' => 'Top',
-                                                                'middle' => 'Middle',
-                                                                'bottom' => 'Bottom',
-                                                            ])
-                                                            ->default('middle')
-                                                            ->selectablePlaceholder(false),
-                                                    ]),
-                                                Forms\Components\Group::make()
-                                                    ->schema([
-                                                        Select::make('padding')
-                                                            ->label('Padding')
-                                                            ->options(function (callable $get) {
-                                                                $themeId = $get('theme_id');
-                                                                if (!$themeId) {
-                                                                    return [];
-                                                                }
+                                                Select::make('text_position')
+                                                    ->label('Text Position')
+                                                    ->options([
+                                                        'top' => 'Top',
+                                                        'middle' => 'Middle',
+                                                        'bottom' => 'Bottom',
+                                                    ])
+                                                    ->default('middle')
+                                                    ->selectablePlaceholder(false),
 
-                                                                $theme = Theme::find($themeId);
-                                                                if (!$theme || empty($theme->paddings) || !is_array($theme->paddings)) {
-                                                                    return [];
-                                                                }
 
-                                                                $paddingOptions = [];
-                                                                foreach ($theme->paddings as $paddingData) {
-                                                                    if (isset($paddingData['name']) && isset($paddingData['value'])) {
-                                                                        $paddingOptions[$paddingData['value']] = $paddingData['name'] . ' (' . $paddingData['value'] . 'px)';
-                                                                    }
-                                                                }
+                                                Select::make('padding')
+                                                    ->label('Padding')
+                                                    ->options(function (callable $get) {
+                                                        $themeId = $get('theme_id');
+                                                        if (!$themeId) {
+                                                            return [];
+                                                        }
 
-                                                                return $paddingOptions;
-                                                            })
-                                                            ->visible(fn(callable $get) => !empty($get('theme_id')))
-                                                            ->required()
-                                                            ->afterStateHydrated(function ($state, callable $set, callable $get) {
-                                                                if (empty($state) && !empty($get('theme_id'))) {
-                                                                    $theme = Theme::find($get('theme_id'));
-                                                                    if ($theme && !empty($theme->paddings) && is_array($theme->paddings) && count($theme->paddings) > 0) {
-                                                                        if (isset($theme->paddings[0]['value'])) {
-                                                                            $set('padding', $theme->paddings[0]['value']);
-                                                                        }
-                                                                    }
+                                                        $theme = Theme::find($themeId);
+                                                        if (!$theme || empty($theme->paddings) || !is_array($theme->paddings)) {
+                                                            return [];
+                                                        }
+
+                                                        $paddingOptions = [];
+                                                        foreach ($theme->paddings as $paddingData) {
+                                                            if (isset($paddingData['name']) && isset($paddingData['value'])) {
+                                                                $paddingOptions[$paddingData['value']] = $paddingData['name'] . ' (' . $paddingData['value'] . 'px)';
+                                                            }
+                                                        }
+
+                                                        return $paddingOptions;
+                                                    })
+                                                    ->visible(fn(callable $get) => !empty($get('theme_id')))
+                                                    ->required()
+                                                    ->afterStateHydrated(function ($state, callable $set, callable $get) {
+                                                        if (empty($state) && !empty($get('theme_id'))) {
+                                                            $theme = Theme::find($get('theme_id'));
+                                                            if ($theme && !empty($theme->paddings) && is_array($theme->paddings) && count($theme->paddings) > 0) {
+                                                                if (isset($theme->paddings[0]['value'])) {
+                                                                    $set('padding', $theme->paddings[0]['value']);
                                                                 }
-                                                            })
-                                                            ->selectablePlaceholder(false),
-                                                    ]),
+                                                            }
+                                                        }
+                                                    })
+                                                    ->selectablePlaceholder(false),
                                             ]),
                                     ]),
+                            ]),
+                        Forms\Components\Tabs\Tab::make('Content Text Settings')
+                            ->schema([
 
-                                // Content Text Settings
-                                Forms\Components\Section::make('Content Text Settings')
+                                Forms\Components\Grid::make(2)
                                     ->schema([
-                                        Forms\Components\Grid::make(3)
+                                        Forms\Components\Group::make()
                                             ->schema([
                                                 Select::make('content_font_family')
                                                     ->label('Font Family')
+
                                                     ->options(function (callable $get) {
                                                         $themeId = $get('theme_id');
                                                         if (!$themeId) {
@@ -370,15 +367,10 @@ class ImageTemplateResource extends Resource
                                                             return [];
                                                         }
 
-                                                        $fontOptions = [];
-                                                        $fontNames = FontHelper::getFontOptions();
-
-                                                        foreach ($theme->fonts as $font) {
-                                                            $fontOptions[$font] = $fontNames[$font] ?? $font;
-                                                        }
-
-                                                        return $fontOptions;
+                                                        $fonts = collect(FontHelper::getAvailableFonts())->only($theme->fonts)->all();
+                                                        return FontHelper::getStyledFontOptions($fonts);
                                                     })
+                                                    ->native(false)
                                                     ->visible(fn(callable $get) => !empty($get('theme_id')))
                                                     ->required()
                                                     ->allowHtml()
@@ -467,10 +459,13 @@ class ImageTemplateResource extends Resource
                                             ]),
                                     ]),
 
-                                // Author Text Settings
-                                Forms\Components\Section::make('Author Text Settings')
+                            ]),
+                        Forms\Components\Tabs\Tab::make('Author Text Settings')
+                            ->schema([
+
+                                Forms\Components\Grid::make(2)
                                     ->schema([
-                                        Forms\Components\Grid::make(3)
+                                        Forms\Components\Group::make()
                                             ->schema([
                                                 Select::make('author_font_family')
                                                     ->label('Font Family')
@@ -485,18 +480,13 @@ class ImageTemplateResource extends Resource
                                                             return [];
                                                         }
 
-                                                        $fontOptions = [];
-                                                        $fontNames = FontHelper::getFontOptions();
-
-                                                        foreach ($theme->fonts as $font) {
-                                                            $fontOptions[$font] = $fontNames[$font] ?? $font;
-                                                        }
-
-                                                        return $fontOptions;
+                                                        $fonts = collect(FontHelper::getAvailableFonts())->only($theme->fonts)->all();
+                                                        return FontHelper::getStyledFontOptions($fonts);
                                                     })
                                                     ->visible(fn(callable $get) => !empty($get('theme_id')))
                                                     ->required()
                                                     ->allowHtml()
+                                                    ->native(false)
                                                     ->afterStateHydrated(function ($state, callable $set, callable $get) {
                                                         if (empty($state) && !empty($get('theme_id'))) {
                                                             $theme = Theme::find($get('theme_id'));
@@ -584,7 +574,8 @@ class ImageTemplateResource extends Resource
                                                     ->allowHtml(),
                                             ]),
                                     ]),
-                            ])
+
+                            ]),
                     ]),
 
             ]);
@@ -607,33 +598,41 @@ class ImageTemplateResource extends Resource
                         if ($state === 'color') {
                             return 'Color: ' . $record->background_color;
                         } elseif ($state === 'image') {
-                            return 'Image: ' . basename($record->background_image ?? 'None');
+                            return "<img src='" . ImageStore::url($record->background_image) . "' class='w-10 h-10 object-cover'>";
                         }
                         return ucfirst($state);
-                    }),
+                    })->html(),
 
-                Tables\Columns\TextColumn::make('text_settings')
-                    ->label('Text Settings')
+                Tables\Columns\TextColumn::make('content_font_family')
+                    ->label('Content Settings')
                     ->formatStateUsing(function (ImageTemplate $record) {
-                        if (!$record->theme) {
-                            return 'No theme selected';
-                        }
 
-                        $contentFontName = FontHelper::getFontDisplayName($record->content_font_family ?? '');
-                        $authorFontName = FontHelper::getFontDisplayName($record->author_font_family ?? '');
+                        $contentFontName = FontHelper::getRenderedFontName($record->content_font_family ?? '');
 
                         $html = '';
 
                         if ($contentFontName) {
-                            $html .= "<strong>Content:</strong> {$contentFontName}, {$record->content_font_size}px";
+                            $html .= "{$contentFontName}, {$record->content_font_size}px";
                             if ($record->content_font_color) {
                                 $html .= " <span style='display:inline-block; width:12px; height:12px; background-color:{$record->content_font_color}; border-radius:2px; margin-right:4px;'></span>";
                             }
                             $html .= "<br>";
                         }
 
+                        return $html ?: 'No text settings configured';
+                    })
+                    ->html(),
+
+                Tables\Columns\TextColumn::make('author_font_family')
+                    ->label('Author Settings')
+                    ->formatStateUsing(function (ImageTemplate $record) {
+
+                        $authorFontName = FontHelper::getRenderedFontName($record->author_font_family ?? '');
+
+                        $html = '';
+
                         if ($authorFontName) {
-                            $html .= "<strong>Author:</strong> {$authorFontName}, {$record->author_font_size}px";
+                            $html .= "{$authorFontName}, {$record->author_font_size}px";
                             if ($record->author_font_color) {
                                 $html .= " <span style='display:inline-block; width:12px; height:12px; background-color:{$record->author_font_color}; border-radius:2px; margin-right:4px;'></span>";
                             }

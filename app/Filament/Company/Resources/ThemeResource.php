@@ -31,7 +31,7 @@ class ThemeResource extends Resource
 
     protected static ?string $navigationLabel = 'Themes';
 
-    protected static ?string $navigationGroup = 'Content';
+    protected static ?string $navigationGroup = 'Image Settings';
 
     public static function form(Form $form): Form
     {
@@ -77,7 +77,7 @@ class ThemeResource extends Resource
                                                 Select::make('fonts')
                                                     ->label('Fonts')
                                                     ->multiple()
-                                                    ->options(FontHelper::getFontOptions())
+                                                    ->options(FontHelper::getStyledFontOptions())
                                                     ->searchable()
                                                     ->allowHtml()
                                                     ->helperText('Select fonts available in the system.'),
@@ -271,7 +271,7 @@ class ThemeResource extends Resource
                         $fontList = '';
 
                         // Show first 3 fonts with preview
-                        $fontOptions = FontHelper::getFontOptions();
+                        $fontOptions = FontHelper::getStyledFontOptions();
                         $showCount = min(3, $count);
                         for ($i = 0; $i < $showCount; $i++) {
                             if (isset($fonts[$i])) {
@@ -332,7 +332,6 @@ class ThemeResource extends Resource
                 ImageColumn::make('background_images')
                     ->label('Backgrounds')
                     ->getStateUsing(function ($record): array {
-                        // dd(array_column($record->background_images ?? [], 'value'));
                         return array_column($record->background_images ?? [], 'value');
                     })
                     ->size(40)

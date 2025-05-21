@@ -30,6 +30,10 @@ class PostResource extends Resource
 
     protected static ?string $navigationLabel = 'Posts';
 
+    protected static ?string $navigationGroup = 'Posting';
+
+    protected static ?int $navigationSort = 1;
+
     public static function form(Form $form): Form
     {
         return $form
@@ -303,7 +307,7 @@ class PostResource extends Resource
                                                     ->schema([
                                                         Forms\Components\Select::make('content_font')
                                                             ->label('Content Font')
-                                                            ->options(FontHelper::getFontOptions())
+                                                            ->options(FontHelper::getStyledFontOptions())
                                                             ->allowHtml()
                                                             ->live(debounce: 500)
                                                             ->afterStateUpdated(function ($set) {
@@ -436,7 +440,7 @@ class PostResource extends Resource
                                                     ->schema([
                                                         Forms\Components\Select::make('author_font')
                                                             ->label('Author Font')
-                                                            ->options(FontHelper::getFontOptions())
+                                                            ->options(FontHelper::getStyledFontOptions())
                                                             ->allowHtml()
                                                             ->live(debounce: 500)
                                                             ->afterStateUpdated(function ($set) {

@@ -21,6 +21,8 @@ class PlatformResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    protected static ?int $navigationSort = 10;
+
     // protected static ?string $tenantRelationshipName = "company";
 
     public static function form(Form $form): Form
@@ -112,11 +114,11 @@ class PlatformResource extends Resource
                     })
                     ->circular(),
                 Tables\Columns\TextColumn::make('label')
-                    ->label('Label')
+                    ->label('Custom Label')
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('provider')
-                    ->label('Platform')
+                    ->label('Type')
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('external_name')
