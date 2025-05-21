@@ -23,6 +23,7 @@ class ListPosts extends ListRecords
             Actions\Action::make('refresh')
                 ->label('Refresh')
                 ->icon('heroicon-o-arrow-path')
+                ->refreshTable() // 👈 this triggers the table reload
                 ->action(fn () => $this->refreshTable()),
         ];
     }

@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('external_url')->nullable();  // URL to the page
             $table->string('external_token')->nullable();  // Platform-specific token
             $table->text('external_picture_url')->nullable();  // Platform-specific token
+            $table->boolean('is_active')->default(false);
             $table->timestamps();
         });
     }

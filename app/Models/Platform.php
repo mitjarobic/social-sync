@@ -8,11 +8,13 @@ class Platform extends BaseModel
         'label',
         'provider',
         'user_id',
+        'company_id',
         'external_id',
         'external_name',
         'external_url',
         'external_token',
-        'external_picture_url'
+        'external_picture_url',
+        'is_active'
     ];
 
     protected $casts = [

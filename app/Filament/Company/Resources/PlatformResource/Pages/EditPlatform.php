@@ -13,8 +13,13 @@ class EditPlatform extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeletePlatformAction::forEditPage()
-                ->successRedirectUrl(PlatformResource::getUrl('index')),
+            // DeletePlatformAction::forEditPage()
+            //     ->successRedirectUrl(PlatformResource::getUrl('index')),
         ];
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
     }
 }

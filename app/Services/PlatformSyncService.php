@@ -29,6 +29,7 @@ class PlatformSyncService
             Platform::updateOrCreate(
                 [
                     'user_id' => $this->user->id,
+                    'company_id' => $this->user->currentCompany->id,
                     'provider' => 'facebook',
                     'external_id' => $page['id'],
                 ],
@@ -49,6 +50,7 @@ class PlatformSyncService
             Platform::updateOrCreate(
                 [
                     'user_id' => $this->user->id,
+                    'company_id' => $this->user->currentCompany->id,
                     'provider' => 'instagram',
                     'external_id' => $ig['id'],
                 ],
