@@ -28,19 +28,40 @@ class TestPlatformService extends Command
         $content = "A great quote on the image!";
         $author = "TCUA";
 
+        // Options for image generation
+        $options = [
+            'contentFont' => 'sansSerif.ttf',
+            'contentFontSize' => 112,
+            'contentFontColor' => '#FFFFFF',
+            'authorFont' => 'sansSerif.ttf',
+            'authorFontSize' => 78,
+            'authorFontColor' => '#FFFFFF',
+            'bgColor' => '#000000',
+            'extraOptions' => [
+                'textAlignment' => 'center',
+                'textPosition' => 'middle',
+                'padding' => 20,
+            ],
+        ];
+
         // Generate and save image
-        $jpegData = $generator->generate($content, $author);
+        $jpegData = $generator->generate($content, $author, $options);
         $filename = 'posts/test-' . now()->timestamp . '.jpg';
 
-        $imageUrl = DevHelper::withNgrokUrl(ImageStore::save($filename, $jpegData));
+        ImageStore::save($filename, $jpegData);
+        $imageUrl = DevHelper::withNgrokUrl(ImageStore::url($filename));
 
         dump($imageUrl);
 
         try {
+            // Mock page ID and token for testing
+            $pageId = 'test_page_id';
+            $pageToken = 'test_page_token';
+
             $response = match ($platform) {
-                'facebook' => app(FacebookService::class)->post($caption, $imageUrl),
-                'instagram' => app(InstagramService::class)->post($imageUrl, $caption),
-                'x' => app(XService::class)->post($caption, $imageUrl),
+                'facebook' => app(FacebookService::class)->post($pageId, $pageToken, $caption, $imageUrl),
+                'instagram' => app(InstagramService::class)->post($pageId, $pageToken, $caption, $imageUrl),
+                'x' => app(XService::class)->post($pageId, $pageToken, $caption, $imageUrl),
                 default => throw new \Exception("Unknown platform: {$platform}"),
             };
 

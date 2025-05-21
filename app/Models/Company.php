@@ -61,6 +61,16 @@ class Company extends FilamentCompaniesCompany implements HasAvatar
         return $this->hasMany(Post::class);
     }
 
+    public function themes()
+    {
+        return $this->hasMany(Theme::class);
+    }
+
+    public function imageTemplates()
+    {
+        return $this->hasMany(ImageTemplate::class);
+    }
+
     /**
      * Get the owner of the company.
      */

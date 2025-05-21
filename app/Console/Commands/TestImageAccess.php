@@ -32,11 +32,28 @@ class TestImageAccess extends Command
         $content = "A great quote on the image!";
         $author = "TCUA";
 
+        // Options for image generation
+        $options = [
+            'contentFont' => 'sansSerif.ttf',
+            'contentFontSize' => 112,
+            'contentFontColor' => '#FFFFFF',
+            'authorFont' => 'sansSerif.ttf',
+            'authorFontSize' => 78,
+            'authorFontColor' => '#FFFFFF',
+            'bgColor' => '#000000',
+            'extraOptions' => [
+                'textAlignment' => 'center',
+                'textPosition' => 'middle',
+                'padding' => 20,
+            ],
+        ];
+
         // Generate and save image
-        $jpegData = $generator->generate($content, $author);
+        $jpegData = $generator->generate($content, $author, $options);
         $filename = 'posts/test-' . now()->timestamp . '.jpg';
 
-        $imageUrl = DevHelper::withNgrokUrl(ImageStore::save($filename, $jpegData));
+        ImageStore::save($filename, $jpegData);
+        $imageUrl = DevHelper::withNgrokUrl(ImageStore::url($filename));
 
         $this->line($imageUrl);
     }

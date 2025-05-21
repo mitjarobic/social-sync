@@ -1,0 +1,105 @@
+/* Font Preview Styles */
+
+@font-face {
+    font-family: 'SansSerif';
+    src: url('/fonts/sansSerif.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Roboto';
+    src: url('/fonts/roboto.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'OpenSans';
+    src: url('/fonts/opensans.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Lato';
+    src: url('/fonts/lato.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Raleway';
+    src: url('/fonts/raleway.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Oswald';
+    src: url('/fonts/oswald.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Poppins';
+    src: url('/fonts/poppins.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Playfair';
+    src: url('/fonts/playfair.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Merriweather';
+    src: url('/fonts/merriweather.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Pacifico';
+    src: url('/fonts/pacifico.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'DancingScript';
+    src: url('/fonts/dancingscript.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Montserrat';
+    src: url('/fonts/montserrat.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* Font preview classes */
+.font-preview {
+    font-size: 16px;
+    line-height: 1.5;
+    padding: 4px 0;
+}
+
+.font-sansSerif { font-family: 'SansSerif', sans-serif; }
+.font-roboto { font-family: 'Roboto', sans-serif; }
+.font-opensans { font-family: 'OpenSans', sans-serif; }
+.font-lato { font-family: 'Lato', sans-serif; }
+.font-raleway { font-family: 'Raleway', sans-serif; }
+.font-oswald { font-family: 'Oswald', sans-serif; }
+.font-poppins { font-family: 'Poppins', sans-serif; }
+.font-playfair { font-family: 'Playfair', serif; }
+.font-merriweather { font-family: 'Merriweather', serif; }
+.font-pacifico { font-family: 'Pacifico', cursive; }
+.font-dancingscript { font-family: 'DancingScript', cursive; }
+.font-montserrat { font-family: 'Montserrat', sans-serif; }

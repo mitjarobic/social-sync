@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('posts', function (Blueprint $table) {
             $table->string('image_font')->nullable()->default('sansSerif.ttf');
-            $table->integer('image_font_size')->nullable()->default(112);
+            $table->integer('image_font_size')->nullable()->default(80);
             $table->string('image_font_color')->nullable()->default('#FFFFFF');
             $table->string('image_bg_color')->nullable()->default('#000000');
             $table->string('image_bg_image_path')->nullable();

@@ -14,13 +14,26 @@ class SocialMediaImageGenerator
         $manager = new ImageManager(new Driver());
 
         // Extract options with defaults
-        $contentFontSize = $options['fontSize'] ?? 112;
-        $authorFontSize = intval($contentFontSize * 0.7); // Author font is 70% of content font size
-        $fontColor = $options['fontColor'] ?? '#FFFFFF';
+        // Content font settings
+        $contentFont = $options['contentFont'] ?? 'sansSerif.ttf';
+        $contentFontSize = $options['contentFontSize'] ?? 112;
+        $contentFontColor = $options['contentFontColor'] ?? '#FFFFFF';
+
+        // Author font settings
+        $authorFont = $options['authorFont'] ?? 'sansSerif.ttf';
+        $authorFontSize = $options['authorFontSize'] ?? intval($contentFontSize * 0.7); // Default: 70% of content font size
+        $authorFontColor = $options['authorFontColor'] ?? '#FFFFFF';
+
+        // Background settings
         $bgColor = $options['bgColor'] ?? '#000000';
         $bgImagePath = $options['bgImagePath'] ?? null;
+
+        // Layout settings
         $lineHeight = $options['extraOptions']['lineHeight'] ?? 1.4;
         $maxWidth = $options['extraOptions']['maxWidth'] ?? 20; // Characters per line
+        $textAlignment = $options['extraOptions']['textAlignment'] ?? 'center';
+        $textPosition = $options['extraOptions']['textPosition'] ?? 'middle';
+        $padding = $options['extraOptions']['padding'] ?? 20;
 
         // Create base image with background color
         $image = $manager->create(1080, 1080)->fill($bgColor);
@@ -48,8 +61,17 @@ class SocialMediaImageGenerator
         $lines = explode("\n", $wrappedText);
         $totalHeight = count($lines) * $contentFontSize * $lineHeight;
 
-        // Base Y position (centered vertically)
-        $baseY = $author ? 590 : 640; // Adjust for author presence
+        // Adjust base Y position based on text position setting
+        $baseY = 540; // Default middle position
+        if ($textPosition === 'top') {
+            $baseY = $padding + ($totalHeight / 2) + 100;
+        } else if ($textPosition === 'bottom') {
+            $baseY = 1080 - $padding - ($totalHeight / 2) - ($author ? 140 : 0) - 100;
+        } else {
+            // Middle position (default)
+            $baseY = $author ? 590 : 640; // Adjust for author presence
+        }
+
         $startY = $baseY - ($totalHeight / 2);
 
         $yPos = 0;
@@ -58,21 +80,21 @@ class SocialMediaImageGenerator
         foreach ($lines as $i => $line) {
             $yPos = $startY + ($i * $contentFontSize * $lineHeight);
 
-            $image->text($line, 540, $yPos, function ($font) use ($contentFontSize, $fontColor, $options) {
-                $font->filename(public_path('fonts/' . ($options['font'] ?? 'sansSerif.ttf')));
+            $image->text($line, 540, $yPos, function ($font) use ($contentFont, $contentFontSize, $contentFontColor, $textAlignment) {
+                $font->filename(public_path('fonts/' . $contentFont));
                 $font->size($contentFontSize);
-                $font->color($fontColor);
-                $font->align('center');
+                $font->color($contentFontColor);
+                $font->align($textAlignment);
             });
         }
 
         // Add author if exists
         if ($author) {
-            $image->text("— " . $author, 540, $yPos + 140, function ($font) use ($authorFontSize, $fontColor, $options) {
-                $font->filename(public_path('fonts/' . ($options['font'] ?? 'sansSerif.ttf')));
+            $image->text("— " . $author, 540, $yPos + 140, function ($font) use ($authorFont, $authorFontSize, $authorFontColor, $textAlignment) {
+                $font->filename(public_path('fonts/' . $authorFont));
                 $font->size($authorFontSize);
-                $font->color($fontColor);
-                $font->align('center');
+                $font->color($authorFontColor);
+                $font->align($textAlignment);
             });
         }
 

@@ -113,6 +113,9 @@ class FilamentCompaniesServiceProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
             ])
             ->viteTheme('resources/css/filament/company/theme.css')
+            ->assets([
+                \Filament\Support\Assets\Css::make('font-previews', public_path('css/font-previews.css')),
+            ])
             ->authMiddleware([
                 Authenticate::class,
             ]);

@@ -17,20 +17,28 @@ class Post extends BaseModel
         'image_content',
         'image_author',
         'image_path',
-        'image_font',
-        'image_font_size',
-        'image_font_color',
+        'content_font',
+        'content_font_size',
+        'content_font_color',
+        'author_font',
+        'author_font_size',
+        'author_font_color',
         'image_bg_color',
         'image_bg_image_path',
         'image_options',
-        'status'
+        'status',
+        'image_template_id',
+        'use_custom_image_settings'
     ];
 
     protected $casts = [
         'status' => PostStatus::class,
         'image_options' => 'array',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
+        'use_custom_image_settings' => 'boolean',
+        'content_font_size' => 'integer',
+        'author_font_size' => 'integer'
     ];
 
     // Relationship to the Company model
@@ -42,6 +50,14 @@ class Post extends BaseModel
     public function platformPosts()
     {
         return $this->hasMany(PlatformPost::class);
+    }
+
+    /**
+     * Get the image template associated with this post
+     */
+    public function imageTemplate()
+    {
+        return $this->belongsTo(ImageTemplate::class);
     }
 
     protected static function booted()
@@ -131,25 +147,74 @@ class Post extends BaseModel
     {
         if ($this->isDirty('image_content') ||
             $this->isDirty('image_author') ||
-            $this->isDirty('image_font') ||
-            $this->isDirty('image_font_size') ||
-            $this->isDirty('image_font_color') ||
+            $this->isDirty('content_font') ||
+            $this->isDirty('content_font_size') ||
+            $this->isDirty('content_font_color') ||
+            $this->isDirty('author_font') ||
+            $this->isDirty('author_font_size') ||
+            $this->isDirty('author_font_color') ||
             $this->isDirty('image_bg_color') ||
             $this->isDirty('image_bg_image_path') ||
-            $this->isDirty('image_options')
+            $this->isDirty('image_options') ||
+            $this->isDirty('image_template_id') ||
+            $this->isDirty('use_custom_image_settings')
         ) {
-
             $this->image_path = $this->image_path ?? 'posts/' . now()->timestamp . '.jpg';
 
+            // Get the template if one is selected
+            $template = null;
+            if ($this->image_template_id) {
+                $template = $this->imageTemplate;
+            }
+
             // Prepare options for image generation
-            $options = [
-                'font' => $this->image_font ?? 'sansSerif.ttf',
-                'fontSize' => $this->image_font_size ?? 112,
-                'fontColor' => $this->image_font_color ?? '#FFFFFF',
-                'bgColor' => $this->image_bg_color ?? '#000000',
-                'bgImagePath' => $this->image_bg_image_path ?? null,
-                'extraOptions' => $this->image_options ?? [],
-            ];
+            $options = [];
+
+            if ($template && !$this->use_custom_image_settings) {
+                // Use template settings
+                $options = [
+                    // Content-specific font settings
+                    'contentFont' => $template->content_font_family ?? $template->font_family ?? 'sansSerif.ttf',
+                    'contentFontSize' => $template->content_font_size ?? $template->font_size ?? 112,
+                    'contentFontColor' => $template->content_font_color ?? $template->font_color ?? '#FFFFFF',
+
+                    // Author-specific font settings
+                    'authorFont' => $template->author_font_family ?? $template->font_family ?? 'sansSerif.ttf',
+                    'authorFontSize' => $template->author_font_size ?? ($template->font_size ? intval($template->font_size * 0.7) : 78),
+                    'authorFontColor' => $template->author_font_color ?? $template->font_color ?? '#FFFFFF',
+
+                    // Background settings
+                    'bgColor' => $template->background_type === 'color' ? $template->background_color : '#000000',
+                    'bgImagePath' => $template->background_type === 'image' ? $template->background_image : null,
+
+                    // Layout settings
+                    'extraOptions' => [
+                        'textAlignment' => $template->text_alignment ?? 'center',
+                        'textPosition' => $template->text_position ?? 'middle',
+                        'padding' => $template->padding ?? 20,
+                    ],
+                ];
+            } else {
+                // Use custom settings or fallback to defaults
+                $options = [
+                    // Content-specific font settings
+                    'contentFont' => $this->image_content_font ?? 'sansSerif.ttf',
+                    'contentFontSize' => $this->image_content_font_size ?? 112,
+                    'contentFontColor' => $this->image_content_font_color ?? '#FFFFFF',
+
+                    // Author-specific font settings
+                    'authorFont' => $this->author_font ?? 'sansSerif.ttf',
+                    'authorFontSize' => $this->author_font_size ?? 78,
+                    'authorFontColor' => $this->author_font_color ?? '#FFFFFF',
+
+                    // Background settings
+                    'bgColor' => $this->image_bg_color ?? '#000000',
+                    'bgImagePath' => $this->image_bg_image_path ?? null,
+
+                    // Layout settings
+                    'extraOptions' => $this->image_options ?? [],
+                ];
+            }
 
             $jpegData = SocialMediaImageGenerator::generate(
                 $this->image_content,

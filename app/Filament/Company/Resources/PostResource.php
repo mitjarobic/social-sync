@@ -12,6 +12,8 @@ use Filament\Forms\Form;
 use App\Enums\PostStatus;
 use Filament\Tables\Table;
 use App\Support\ImageStore;
+use App\Models\ImageTemplate;
+use App\Helpers\FontHelper;
 use Filament\Resources\Resource;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
@@ -52,6 +54,27 @@ class PostResource extends Resource
                                                 $set('preview_version', now()->timestamp);
                                             })
                                             ->columnSpanFull(),
+
+                                        // Image content and author moved to Content tab
+                                        Forms\Components\Section::make('Image Text')
+                                            ->schema([
+                                                Forms\Components\TextInput::make('image_content')
+                                                    ->required()
+                                                    ->live(debounce: 500)
+                                                    ->afterStateUpdated(function ($set) {
+                                                        $set('preview_version', now()->timestamp);
+                                                    })
+                                                    ->label('Content'),
+
+                                                Forms\Components\TextInput::make('image_author')
+                                                    ->live(debounce: 500)
+                                                    ->afterStateUpdated(function ($set) {
+                                                        $set('preview_version', now()->timestamp);
+                                                    })
+                                                    ->label('Author'),
+                                            ])
+                                            ->columns(1)
+                                            ->collapsed(false),
 
                                         Forms\Components\Select::make('status')
                                             ->options(function () {
@@ -156,102 +179,492 @@ class PostResource extends Resource
                                             ->columnSpanFull(),
                                     ]),
 
-                                // Tab 3: Image Settings
-                                Forms\Components\Tabs\Tab::make('Image Settings')
+                                // Tab 3: Image Template
+                                Forms\Components\Tabs\Tab::make('Image Template')
                                     ->schema([
                                         // Hidden field for preview version
                                         Forms\Components\TextInput::make('preview_version')
                                             ->hidden()
                                             ->default(now()->timestamp),
 
-                                        // Content and Author
-                                        Forms\Components\Section::make('Text Content')
+                                        Forms\Components\Section::make('Template Selection')
                                             ->schema([
-                                                Forms\Components\TextInput::make('image_content')
-                                                    ->required()
-                                                    ->live(debounce: 500)
-                                                    ->afterStateUpdated(function ($set) {
-                                                        $set('preview_version', now()->timestamp);
+                                                Forms\Components\Select::make('image_template_id')
+                                                    ->label('Select Template')
+                                                    ->options(function () {
+                                                        return ImageTemplate::where('company_id', Auth::user()->currentCompany->id)
+                                                            ->pluck('name', 'id');
                                                     })
-                                                    ->label('Content'),
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->live()
+                                                    ->afterStateUpdated(function (Set $set, $state) {
+                                                        if ($state) {
+                                                            // When a template is selected, load its properties
+                                                            $template = ImageTemplate::find($state);
+                                                            if ($template) {
+                                                                // Set use_custom_image_settings to false by default
+                                                                $set('use_custom_image_settings', false);
 
-                                                Forms\Components\TextInput::make('image_author')
-                                                    ->live(debounce: 500)
-                                                    ->afterStateUpdated(function ($set) {
+                                                                // Load template properties into the form
+                                                                if ($template->background_type === 'color') {
+                                                                    $set('image_bg_color', $template->background_color);
+                                                                    $set('image_bg_image_path', null);
+                                                                } else {
+                                                                    $set('image_bg_image_path', $template->background_image);
+                                                                    $set('image_bg_color', '#000000'); // Default fallback
+                                                                }
+
+                                                                // Default font settings
+                                                                $set('image_font', $template->font_family);
+                                                                $set('image_font_size', $template->font_size);
+                                                                $set('image_font_color', $template->font_color);
+
+                                                                // Content-specific font settings
+                                                                $set('content_font', $template->content_font_family ?? $template->font_family);
+                                                                $set('content_font_size', $template->content_font_size ?? $template->font_size);
+                                                                $set('content_font_color', $template->content_font_color ?? $template->font_color);
+
+                                                                // Author-specific font settings
+                                                                $set('author_font', $template->author_font_family ?? $template->font_family);
+                                                                $set('author_font_size', $template->author_font_size ?? ($template->font_size ? intval($template->font_size * 0.7) : 78));
+                                                                $set('author_font_color', $template->author_font_color ?? $template->font_color);
+
+                                                                // Update image options
+                                                                $set('image_options', [
+                                                                    'textAlignment' => $template->text_alignment,
+                                                                    'textPosition' => $template->text_position,
+                                                                    'padding' => $template->padding,
+                                                                ]);
+
+                                                                // Update preview
+                                                                $set('preview_version', now()->timestamp);
+                                                            }
+                                                        }
+                                                    }),
+
+                                                Forms\Components\Toggle::make('use_custom_image_settings')
+                                                    ->label('Customize Image Settings')
+                                                    ->helperText('Enable to override template settings with custom values')
+                                                    ->default(false)
+                                                    ->live()
+                                                    ->afterStateUpdated(function (Set $set, Get $get, $state) {
+                                                        // If toggle is turned off, reload template settings
+                                                        if (!$state) {
+                                                            $templateId = $get('image_template_id');
+                                                            if ($templateId) {
+                                                                $template = ImageTemplate::find($templateId);
+                                                                if ($template) {
+                                                                    // Load template properties into the form
+                                                                    if ($template->background_type === 'color') {
+                                                                        $set('image_bg_color', $template->background_color);
+                                                                        $set('image_bg_image_path', null);
+                                                                    } else {
+                                                                        $set('image_bg_image_path', $template->background_image);
+                                                                        $set('image_bg_color', '#000000'); // Default fallback
+                                                                    }
+
+                                                                    // Default font settings
+                                                                    $set('image_font', $template->font_family);
+                                                                    $set('image_font_size', $template->font_size);
+                                                                    $set('image_font_color', $template->font_color);
+
+                                                                    // Content-specific font settings
+                                                                    $set('content_font', $template->content_font_family ?? $template->font_family);
+                                                                    $set('content_font_size', $template->content_font_size ?? $template->font_size);
+                                                                    $set('content_font_color', $template->content_font_color ?? $template->font_color);
+
+                                                                    // Author-specific font settings
+                                                                    $set('author_font', $template->author_font_family ?? $template->font_family);
+                                                                    $set('author_font_size', $template->author_font_size ?? ($template->font_size ? intval($template->font_size * 0.7) : 78));
+                                                                    $set('author_font_color', $template->author_font_color ?? $template->font_color);
+
+                                                                    // Update image options
+                                                                    $set('image_options', [
+                                                                        'textAlignment' => $template->text_alignment,
+                                                                        'textPosition' => $template->text_position,
+                                                                        'padding' => $template->padding,
+                                                                    ]);
+                                                                }
+                                                            }
+                                                        }
+
                                                         $set('preview_version', now()->timestamp);
-                                                    })
-                                                    ->label('Author'),
-                                            ])
-                                            ->columns(1)
-                                            ->collapsed(false),
+                                                    }),
+                                            ]),
 
-                                        // Font Settings
-                                        Forms\Components\Section::make('Font Settings')
+                                        // Custom Settings (only visible when use_custom_image_settings is true)
+                                        Forms\Components\Section::make('Custom Settings')
                                             ->schema([
-                                                Forms\Components\Select::make('image_font')
-                                                    ->label('Font')
-                                                    ->options([
-                                                        'sansSerif.ttf' => 'Sans Serif',
-                                                        'roboto.ttf' => 'Roboto',
+
+
+                                                // Content Text Settings
+                                                Forms\Components\Section::make('Content Text Settings')
+                                                    ->schema([
+                                                        Forms\Components\Select::make('content_font')
+                                                            ->label('Content Font')
+                                                            ->options(FontHelper::getFontOptions())
+                                                            ->allowHtml()
+                                                            ->live(debounce: 500)
+                                                            ->afterStateUpdated(function ($set) {
+                                                                $set('preview_version', now()->timestamp);
+                                                            }),
+
+                                                        Forms\Components\Select::make('content_font_size')
+                                                            ->label('Content Font Size')
+                                                            ->options(function (Get $get) {
+                                                                $templateId = $get('image_template_id');
+                                                                if (!$templateId) {
+                                                                    return [
+                                                                        '48' => 'Small (48px)',
+                                                                        '64' => 'Medium (64px)',
+                                                                        '80' => 'Large (80px)',
+                                                                        '96' => 'Extra Large (96px)',
+                                                                        '112' => 'Huge (112px)',
+                                                                        '140' => 'Giant (140px)',
+                                                                    ];
+                                                                }
+
+                                                                $template = \App\Models\ImageTemplate::find($templateId);
+                                                                if (!$template || !$template->theme) {
+                                                                    return [
+                                                                        '48' => 'Small (48px)',
+                                                                        '64' => 'Medium (64px)',
+                                                                        '80' => 'Large (80px)',
+                                                                        '96' => 'Extra Large (96px)',
+                                                                        '112' => 'Huge (112px)',
+                                                                        '140' => 'Giant (140px)',
+                                                                    ];
+                                                                }
+
+                                                                $theme = $template->theme;
+                                                                if (empty($theme->font_sizes)) {
+                                                                    return [
+                                                                        '48' => 'Small (48px)',
+                                                                        '64' => 'Medium (64px)',
+                                                                        '80' => 'Large (80px)',
+                                                                        '96' => 'Extra Large (96px)',
+                                                                        '112' => 'Huge (112px)',
+                                                                        '140' => 'Giant (140px)',
+                                                                    ];
+                                                                }
+
+                                                                $sizeOptions = [];
+                                                                foreach ($theme->font_sizes as $fontSizeData) {
+                                                                    if (isset($fontSizeData['size']) && isset($fontSizeData['name'])) {
+                                                                        $sizeOptions[$fontSizeData['size']] = $fontSizeData['name'] . ' (' . $fontSizeData['size'] . 'px)';
+                                                                    }
+                                                                }
+
+                                                                return $sizeOptions;
+                                                            })
+                                                            ->live(debounce: 500)
+                                                            ->afterStateUpdated(function ($set) {
+                                                                $set('preview_version', now()->timestamp);
+                                                            }),
+
+                                                        Forms\Components\Select::make('content_font_color')
+                                                            ->label('Content Font Color')
+                                                            ->options(function (Get $get) {
+                                                                $templateId = $get('image_template_id');
+                                                                if (!$templateId) {
+                                                                    return [
+                                                                        '#ffffff' => 'White',
+                                                                        '#000000' => 'Black',
+                                                                        '#0f172a' => 'Slate 900',
+                                                                        '#ef4444' => 'Red 500',
+                                                                        '#22c55e' => 'Green 500',
+                                                                        '#3b82f6' => 'Blue 500',
+                                                                        '#eab308' => 'Yellow 500',
+                                                                        '#a855f7' => 'Purple 500',
+                                                                        '#ec4899' => 'Pink 500',
+                                                                        '#14b8a6' => 'Teal 500',
+                                                                    ];
+                                                                }
+
+                                                                $template = \App\Models\ImageTemplate::find($templateId);
+                                                                if (!$template || !$template->theme) {
+                                                                    return [
+                                                                        '#ffffff' => 'White',
+                                                                        '#000000' => 'Black',
+                                                                        '#0f172a' => 'Slate 900',
+                                                                        '#ef4444' => 'Red 500',
+                                                                        '#22c55e' => 'Green 500',
+                                                                        '#3b82f6' => 'Blue 500',
+                                                                        '#eab308' => 'Yellow 500',
+                                                                        '#a855f7' => 'Purple 500',
+                                                                        '#ec4899' => 'Pink 500',
+                                                                        '#14b8a6' => 'Teal 500',
+                                                                    ];
+                                                                }
+
+                                                                $theme = $template->theme;
+                                                                if (empty($theme->colors)) {
+                                                                    return [
+                                                                        '#ffffff' => 'White',
+                                                                        '#000000' => 'Black',
+                                                                        '#0f172a' => 'Slate 900',
+                                                                        '#ef4444' => 'Red 500',
+                                                                        '#22c55e' => 'Green 500',
+                                                                        '#3b82f6' => 'Blue 500',
+                                                                        '#eab308' => 'Yellow 500',
+                                                                        '#a855f7' => 'Purple 500',
+                                                                        '#ec4899' => 'Pink 500',
+                                                                        '#14b8a6' => 'Teal 500',
+                                                                    ];
+                                                                }
+
+                                                                $colorOptions = [];
+                                                                foreach ($theme->colors as $colorData) {
+                                                                    if (isset($colorData['name']) && isset($colorData['value'])) {
+                                                                        $colorOptions[$colorData['value']] = $colorData['name'];
+                                                                    }
+                                                                }
+
+                                                                return $colorOptions;
+                                                            })
+                                                            ->live(debounce: 500)
+                                                            ->afterStateUpdated(function ($set) {
+                                                                $set('preview_version', now()->timestamp);
+                                                            }),
                                                     ])
-                                                    ->default('sansSerif.ttf')
-                                                    ->live(debounce: 500)
-                                                    ->afterStateUpdated(function ($set) {
-                                                        $set('preview_version', now()->timestamp);
-                                                    }),
+                                                    ->columns(3)
+                                                    ->collapsed(true),
 
-                                                Forms\Components\TextInput::make('image_font_size')
-                                                    ->label('Font Size')
-                                                    ->type('number')
-                                                    ->default(112)
-                                                    ->live(debounce: 500)
-                                                    ->afterStateUpdated(function ($set) {
-                                                        $set('preview_version', now()->timestamp);
-                                                    }),
+                                                // Author Text Settings
+                                                Forms\Components\Section::make('Author Text Settings')
+                                                    ->schema([
+                                                        Forms\Components\Select::make('author_font')
+                                                            ->label('Author Font')
+                                                            ->options(FontHelper::getFontOptions())
+                                                            ->allowHtml()
+                                                            ->live(debounce: 500)
+                                                            ->afterStateUpdated(function ($set) {
+                                                                $set('preview_version', now()->timestamp);
+                                                            }),
 
-                                                Forms\Components\ColorPicker::make('image_font_color')
-                                                    ->label('Font Color')
-                                                    ->default('#FFFFFF')
-                                                    ->live(debounce: 500)
-                                                    ->afterStateUpdated(function ($set) {
-                                                        $set('preview_version', now()->timestamp);
-                                                    }),
+                                                        Forms\Components\Select::make('author_font_size')
+                                                            ->label('Author Font Size')
+                                                            ->options(function (Get $get) {
+                                                                $templateId = $get('image_template_id');
+                                                                if (!$templateId) {
+                                                                    return [
+                                                                        '48' => 'Small (48px)',
+                                                                        '64' => 'Medium (64px)',
+                                                                        '80' => 'Large (80px)',
+                                                                        '96' => 'Extra Large (96px)',
+                                                                        '112' => 'Huge (112px)',
+                                                                        '140' => 'Giant (140px)',
+                                                                    ];
+                                                                }
+
+                                                                $template = \App\Models\ImageTemplate::find($templateId);
+                                                                if (!$template || !$template->theme) {
+                                                                    return [
+                                                                        '48' => 'Small (48px)',
+                                                                        '64' => 'Medium (64px)',
+                                                                        '80' => 'Large (80px)',
+                                                                        '96' => 'Extra Large (96px)',
+                                                                        '112' => 'Huge (112px)',
+                                                                        '140' => 'Giant (140px)',
+                                                                    ];
+                                                                }
+
+                                                                $theme = $template->theme;
+                                                                if (empty($theme->font_sizes)) {
+                                                                    return [
+                                                                        '48' => 'Small (48px)',
+                                                                        '64' => 'Medium (64px)',
+                                                                        '80' => 'Large (80px)',
+                                                                        '96' => 'Extra Large (96px)',
+                                                                        '112' => 'Huge (112px)',
+                                                                        '140' => 'Giant (140px)',
+                                                                    ];
+                                                                }
+
+                                                                $sizeOptions = [];
+                                                                foreach ($theme->font_sizes as $fontSizeData) {
+                                                                    if (isset($fontSizeData['size']) && isset($fontSizeData['name'])) {
+                                                                        $sizeOptions[$fontSizeData['size']] = $fontSizeData['name'] . ' (' . $fontSizeData['size'] . 'px)';
+                                                                    }
+                                                                }
+
+                                                                return $sizeOptions;
+                                                            })
+                                                            ->live(debounce: 500)
+                                                            ->afterStateUpdated(function ($set) {
+                                                                $set('preview_version', now()->timestamp);
+                                                            }),
+
+                                                        Forms\Components\Select::make('author_font_color')
+                                                            ->label('Author Font Color')
+                                                            ->options(function (Get $get) {
+                                                                $templateId = $get('image_template_id');
+                                                                if (!$templateId) {
+                                                                    return [
+                                                                        '#ffffff' => 'White',
+                                                                        '#000000' => 'Black',
+                                                                        '#0f172a' => 'Slate 900',
+                                                                        '#ef4444' => 'Red 500',
+                                                                        '#22c55e' => 'Green 500',
+                                                                        '#3b82f6' => 'Blue 500',
+                                                                        '#eab308' => 'Yellow 500',
+                                                                        '#a855f7' => 'Purple 500',
+                                                                        '#ec4899' => 'Pink 500',
+                                                                        '#14b8a6' => 'Teal 500',
+                                                                    ];
+                                                                }
+
+                                                                $template = \App\Models\ImageTemplate::find($templateId);
+                                                                if (!$template || !$template->theme) {
+                                                                    return [
+                                                                        '#ffffff' => 'White',
+                                                                        '#000000' => 'Black',
+                                                                        '#0f172a' => 'Slate 900',
+                                                                        '#ef4444' => 'Red 500',
+                                                                        '#22c55e' => 'Green 500',
+                                                                        '#3b82f6' => 'Blue 500',
+                                                                        '#eab308' => 'Yellow 500',
+                                                                        '#a855f7' => 'Purple 500',
+                                                                        '#ec4899' => 'Pink 500',
+                                                                        '#14b8a6' => 'Teal 500',
+                                                                    ];
+                                                                }
+
+                                                                $theme = $template->theme;
+                                                                if (empty($theme->colors)) {
+                                                                    return [
+                                                                        '#ffffff' => 'White',
+                                                                        '#000000' => 'Black',
+                                                                        '#0f172a' => 'Slate 900',
+                                                                        '#ef4444' => 'Red 500',
+                                                                        '#22c55e' => 'Green 500',
+                                                                        '#3b82f6' => 'Blue 500',
+                                                                        '#eab308' => 'Yellow 500',
+                                                                        '#a855f7' => 'Purple 500',
+                                                                        '#ec4899' => 'Pink 500',
+                                                                        '#14b8a6' => 'Teal 500',
+                                                                    ];
+                                                                }
+
+                                                                $colorOptions = [];
+                                                                foreach ($theme->colors as $colorData) {
+                                                                    if (isset($colorData['name']) && isset($colorData['value'])) {
+                                                                        $colorOptions[$colorData['value']] = $colorData['name'];
+                                                                    }
+                                                                }
+
+                                                                return $colorOptions;
+                                                            })
+                                                            ->live(debounce: 500)
+                                                            ->afterStateUpdated(function ($set) {
+                                                                $set('preview_version', now()->timestamp);
+                                                            }),
+                                                    ])
+                                                    ->columns(3)
+                                                    ->collapsed(true),
+
+                                                // Background Settings
+                                                Forms\Components\Section::make('Background Settings')
+                                                    ->schema([
+                                                        Forms\Components\Select::make('image_bg_color')
+                                                            ->label('Background Color')
+                                                            ->options(function (Get $get) {
+                                                                $templateId = $get('image_template_id');
+                                                                if (!$templateId) {
+                                                                    return [
+                                                                        '#000000' => 'Black',
+                                                                        '#ffffff' => 'White',
+                                                                        '#0f172a' => 'Slate 900',
+                                                                        '#ef4444' => 'Red 500',
+                                                                        '#22c55e' => 'Green 500',
+                                                                        '#3b82f6' => 'Blue 500',
+                                                                        '#eab308' => 'Yellow 500',
+                                                                        '#a855f7' => 'Purple 500',
+                                                                        '#ec4899' => 'Pink 500',
+                                                                        '#14b8a6' => 'Teal 500',
+                                                                    ];
+                                                                }
+
+                                                                $template = \App\Models\ImageTemplate::find($templateId);
+                                                                if (!$template || !$template->theme) {
+                                                                    return [
+                                                                        '#000000' => 'Black',
+                                                                        '#ffffff' => 'White',
+                                                                        '#0f172a' => 'Slate 900',
+                                                                        '#ef4444' => 'Red 500',
+                                                                        '#22c55e' => 'Green 500',
+                                                                        '#3b82f6' => 'Blue 500',
+                                                                        '#eab308' => 'Yellow 500',
+                                                                        '#a855f7' => 'Purple 500',
+                                                                        '#ec4899' => 'Pink 500',
+                                                                        '#14b8a6' => 'Teal 500',
+                                                                    ];
+                                                                }
+
+                                                                $theme = $template->theme;
+                                                                if (empty($theme->colors)) {
+                                                                    return [
+                                                                        '#000000' => 'Black',
+                                                                        '#ffffff' => 'White',
+                                                                        '#0f172a' => 'Slate 900',
+                                                                        '#ef4444' => 'Red 500',
+                                                                        '#22c55e' => 'Green 500',
+                                                                        '#3b82f6' => 'Blue 500',
+                                                                        '#eab308' => 'Yellow 500',
+                                                                        '#a855f7' => 'Purple 500',
+                                                                        '#ec4899' => 'Pink 500',
+                                                                        '#14b8a6' => 'Teal 500',
+                                                                    ];
+                                                                }
+
+                                                                $colorOptions = [];
+                                                                foreach ($theme->colors as $colorData) {
+                                                                    if (isset($colorData['name']) && isset($colorData['value'])) {
+                                                                        $colorOptions[$colorData['value']] = $colorData['name'];
+                                                                    }
+                                                                }
+
+                                                                return $colorOptions;
+                                                            })
+                                                            ->default('#000000')
+                                                            ->live(debounce: 500)
+                                                            ->afterStateUpdated(function ($set) {
+                                                                $set('preview_version', now()->timestamp);
+                                                            }),
+
+                                                        Forms\Components\FileUpload::make('image_bg_image_path')
+                                                            ->label('Background Image')
+                                                            ->directory('backgrounds')
+                                                            ->image()
+                                                            ->imageResizeMode('cover')
+                                                            ->imageCropAspectRatio('1:1')
+                                                            ->imageResizeTargetWidth('1080')
+                                                            ->imageResizeTargetHeight('1080')
+                                                            ->disk('public')
+                                                            ->visibility('public')
+                                                            ->maxFiles(1)
+                                                            ->downloadable()
+                                                            ->acceptedFileTypes([
+                                                                'image/jpeg',
+                                                                'image/jpg',
+                                                                'image/png',
+                                                                'image/gif',
+                                                                'image/webp',
+                                                                'image/svg+xml',
+                                                                'image/bmp',
+                                                                'image/tiff'
+                                                            ])
+                                                            ->live(debounce: 500)
+                                                            ->helperText('Upload a background image (1080x1080 recommended)')
+                                                            ->afterStateUpdated(function (Set $set) {
+                                                                $set('preview_version', now()->timestamp);
+                                                            }),
+                                                    ])
+                                                    ->columns(1)
+                                                    ->collapsed(false),
                                             ])
-                                            ->columns(3)
-                                            ->collapsed(false),
-
-                                        // Background Settings
-                                        Forms\Components\Section::make('Background Settings')
-                                            ->schema([
-                                                Forms\Components\ColorPicker::make('image_bg_color')
-                                                    ->label('Background Color')
-                                                    ->default('#000000')
-                                                    ->live(debounce: 500)
-                                                    ->afterStateUpdated(function ($set) {
-                                                        $set('preview_version', now()->timestamp);
-                                                    }),
-
-                                                Forms\Components\FileUpload::make('image_bg_image_path')
-                                                    ->label('Background Image')
-                                                    ->directory('backgrounds')
-                                                    ->image()
-                                                    ->imageResizeMode('cover')
-                                                    ->imageCropAspectRatio('1:1')
-                                                    ->imageResizeTargetWidth('1080')
-                                                    ->imageResizeTargetHeight('1080')
-                                                    ->disk('public')
-                                                    ->visibility('public')
-                                                    ->maxFiles(1)
-                                                    ->downloadable()
-                                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/gif'])
-                                                    ->live(debounce: 500)
-                                                    ->helperText('Upload a background image (1080x1080 recommended)')
-                                                    ->afterStateUpdated(function (Set $set) {
-                                                        $set('preview_version', now()->timestamp);
-                                                    }),
-                                            ])
-                                            ->columns(1)
-                                            ->collapsed(false),
+                                            ->visible(fn (Get $get) => $get('use_custom_image_settings')),
                                     ]),
                             ])
                             ->columnSpan(1),
@@ -282,9 +695,12 @@ class PostResource extends Resource
                                                             'content' => $get('content'),
                                                             'imageContent' => $get('image_content'),
                                                             'author' => $get('image_author'),
-                                                            'font' => $get('image_font'),
-                                                            'fontSize' => $get('image_font_size'),
-                                                            'fontColor' => $get('image_font_color'),
+                                                            'contentFont' => $get('content_font'),
+                                                            'contentFontSize' => $get('content_font_size'),
+                                                            'contentFontColor' => $get('content_font_color'),
+                                                            'authorFont' => $get('author_font'),
+                                                            'authorFontSize' => $get('author_font_size'),
+                                                            'authorFontColor' => $get('author_font_color'),
                                                             'bgColor' => $get('image_bg_color'),
                                                             'bgImagePath' => $bgImagePath,
                                                             'version' => $get('preview_version'),
@@ -315,9 +731,12 @@ class PostResource extends Resource
                                                         'content' => $get('content'),
                                                         'imageContent' => $get('image_content'),
                                                         'author' => $get('image_author'),
-                                                        'font' => $get('image_font'),
-                                                        'fontSize' => $get('image_font_size'),
-                                                        'fontColor' => $get('image_font_color'),
+                                                        'contentFont' => $get('content_font'),
+                                                        'contentFontSize' => $get('content_font_size'),
+                                                        'contentFontColor' => $get('content_font_color'),
+                                                        'authorFont' => $get('author_font'),
+                                                        'authorFontSize' => $get('author_font_size'),
+                                                        'authorFontColor' => $get('author_font_color'),
                                                         'bgColor' => $get('image_bg_color'),
                                                         'bgImagePath' => $bgImagePath,
                                                         'version' => $get('preview_version'),
@@ -347,9 +766,12 @@ class PostResource extends Resource
                                                         'content' => $get('content'),
                                                         'imageContent' => $get('image_content'),
                                                         'author' => $get('image_author'),
-                                                        'font' => $get('image_font'),
-                                                        'fontSize' => $get('image_font_size'),
-                                                        'fontColor' => $get('image_font_color'),
+                                                        'contentFont' => $get('content_font'),
+                                                        'contentFontSize' => $get('content_font_size'),
+                                                        'contentFontColor' => $get('content_font_color'),
+                                                        'authorFont' => $get('author_font'),
+                                                        'authorFontSize' => $get('author_font_size'),
+                                                        'authorFontColor' => $get('author_font_color'),
                                                         'bgColor' => $get('image_bg_color'),
                                                         'bgImagePath' => $bgImagePath,
                                                         'version' => $get('preview_version'),
