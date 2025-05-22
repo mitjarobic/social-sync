@@ -30,8 +30,7 @@ class AppServiceProvider extends ServiceProvider
         Blade::component('filament.components.metrics-bar', 'filament::metrics-bar');
 
         // Horizon
-        Horizon::auth(function ($request) {
-            
+        Horizon::auth(function ($request) {            
             $user = auth()->guard('filament')->user();
             return $user && $user->id === 1;
         });
