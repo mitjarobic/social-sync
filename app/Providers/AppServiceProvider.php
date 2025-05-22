@@ -31,7 +31,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Horizon
         Horizon::auth(function ($request) {            
-            $user = auth()->guard('filament')->user();
+            $user = auth()->user();
             return $user && $user->id === 1;
         });
 
