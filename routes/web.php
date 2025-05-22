@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Services\SocialMediaImageGenerator;
 use App\Http\Controllers\FacebookController;
+use Laravel\Horizon\Horizon;
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -63,3 +65,11 @@ Route::get('/sync-platforms', function () {
 // Note: Facebook & Instagram Webhook Routes are in api.php
 // OAuth routes are here in web.php because they're user-facing
 
+
+Route::middleware(['auth'])->group(function () {
+    Horizon::routeMailNotificationsTo('mitja.robic@gmail.com');
+});
+
+Route::get('/horizon', function () {
+    return redirect('/horizon/dashboard');
+});
