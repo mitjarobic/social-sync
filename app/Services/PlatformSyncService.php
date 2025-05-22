@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\Platform;
 use App\Support\ImageStore;
+use Illuminate\Support\Arr;
 
 class PlatformSyncService
 {
@@ -25,7 +26,10 @@ class PlatformSyncService
     {
         // ✅ Facebook Pages
         foreach ($this->facebook->getRawPageData() as $page) {
-            $imageUrl = ImageStore::savePlatformPhoto('facebook', $page['id'], $page['picture']['data']['url']);
+
+            $imageUrl = Arr::has($page, 'picture.data.url') ?
+                ImageStore::savePlatformPhoto('facebook', $page['id'], $page['picture']['data']['url']) : null;
+
             Platform::updateOrCreate(
                 [
                     'user_id' => $this->user->id,
@@ -45,7 +49,8 @@ class PlatformSyncService
 
         // ✅ Instagram Accounts
         foreach ($this->instagram->getRawInstagramAccounts() as $ig) {
-            $imageUrl = ImageStore::savePlatformPhoto('instagram', $ig['id'], $ig['profile_picture_url']);
+            $imageUrl = Arr::has($ig, 'profile_picture_url') ? 
+                ImageStore::savePlatformPhoto('instagram', $ig['id'], $ig['profile_picture_url']) : null;
 
             Platform::updateOrCreate(
                 [
