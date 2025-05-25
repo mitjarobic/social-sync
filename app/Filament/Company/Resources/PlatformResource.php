@@ -36,9 +36,6 @@ class PlatformResource extends Resource
                 ->schema([
                     Forms\Components\Grid::make()
                         ->schema([
-                            Forms\Components\Toggle::make('is_active')
-                                ->label('Active')
-                                ->required(),
                             Forms\Components\TextInput::make('label')
                                 ->required()
                                 ->unique(ignoreRecord: true)
@@ -50,16 +47,32 @@ class PlatformResource extends Resource
         // Otherwise, show the full form for creating a new platform
         return $form
             ->schema([
+                // Show message when no providers are available
+                Forms\Components\Placeholder::make('no_providers_message')
+                    ->label('')
+                    ->content('Your company already has all available platform types (Facebook, Instagram, X). You can only have one platform per type.')
+                    ->visible(function () {
+                        return empty(self::getAvailableProviders());
+                    }),
+
                 Forms\Components\Grid::make()
                     ->schema([
                         Forms\Components\Select::make('provider')
                             ->label('Provider')
-                            ->options([
-                                'facebook' => 'Facebook',
-                                'instagram' => 'Instagram',
-                                'x' => 'X (Twitter)',
-                            ])
+                            ->options(function () {
+                                return self::getAvailableProviders();
+                            })
+                            ->placeholder(function () {
+                                $availableProviders = self::getAvailableProviders();
+                                if (empty($availableProviders)) {
+                                    return 'Your company already has all available platform types';
+                                }
+                                return 'Select a platform type';
+                            })
                             ->required()
+                            ->disabled(function () {
+                                return empty(self::getAvailableProviders());
+                            })
                             ->live()
                             ->afterStateUpdated(function (Set $set, Select $component) {
                                 $set('external_id', null);
@@ -123,18 +136,6 @@ class PlatformResource extends Resource
                     ->label('Type')
                     ->sortable()
                     ->searchable(),
-                Tables\Columns\IconColumn::make('is_active')
-                    ->label('Active')
-                    ->trueIcon('heroicon-o-check-badge')
-                    ->falseIcon('heroicon-o-x-mark')
-                    ->action(function ($record) {
-                        $record->update([
-                            'is_active' => ! $record->is_active,
-                        ]);
-                    })
-                    ->tooltip(fn($record) => $record->is_active ? 'Click to deactivate' : 'Click to activate')
-                    ->sortable()
-                    ->boolean(),
                 Tables\Columns\TextColumn::make('external_name')
                     ->label('Name')
                     ->sortable()
@@ -163,11 +164,7 @@ class PlatformResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                \Filament\Tables\Filters\Filter::make('active')
-                    ->label('Active Only')
-                    ->toggle()
-                    ->default(true)
-                    ->query(fn($query) => $query->where('is_active', true)),
+                //
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
@@ -199,6 +196,33 @@ class PlatformResource extends Resource
     }
 
     /**
+     * Get available providers for the current company
+     * Only returns providers that the company doesn't already have
+     *
+     * @return array Array of provider options [provider => label]
+     */
+    public static function getAvailableProviders(): array
+    {
+        // All possible providers
+        $allProviders = [
+            'facebook' => 'Facebook',
+            'instagram' => 'Instagram',
+            'x' => 'X (Twitter)',
+        ];
+
+        // Get the current company ID
+        $companyId = \Filament\Facades\Filament::getTenant()->id;
+
+        // Get providers that the company already has
+        $existingProviders = \App\Models\Platform::where('company_id', $companyId)
+            ->pluck('provider')
+            ->toArray();
+
+        // Return only providers that the company doesn't have
+        return array_diff_key($allProviders, array_flip($existingProviders));
+    }
+
+    /**
      * Get available platforms for the current company
      *
      * @param string $provider The platform provider (facebook, instagram, x)
@@ -207,17 +231,21 @@ class PlatformResource extends Resource
     public static function getAvailablePlatforms(string $provider): array
     {
         // Get the current company ID
-        $companyId = request()->user()->currentCompany->id;
+        $companyId = \Filament\Facades\Filament::getTenant()->id;
 
-        // Get existing platform IDs for this company
-        $existingPlatformIds = \App\Models\Platform::where('company_id', $companyId)
+        // Check if company already has a platform of this type
+        $hasExistingPlatform = \App\Models\Platform::where('company_id', $companyId)
             ->where('provider', $provider)
-            ->pluck('external_id')
-            ->toArray();
+            ->exists();
 
-        // Get all platforms of this provider that don't belong to the current company
+        // If company already has this platform type, return empty array
+        if ($hasExistingPlatform) {
+            return [];
+        }
+
+        // Get all platforms of this provider that don't have a company_id (unclaimed)
         $availablePlatforms = \App\Models\Platform::where('provider', $provider)
-            ->whereNotIn('external_id', $existingPlatformIds)
+            ->whereNull('company_id')
             ->pluck('external_name', 'external_id')
             ->toArray();
 

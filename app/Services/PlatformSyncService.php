@@ -33,7 +33,6 @@ class PlatformSyncService
             Platform::updateOrCreate(
                 [
                     'user_id' => $this->user->id,
-                    'company_id' => $this->user->currentCompany->id,
                     'provider' => 'facebook',
                     'external_id' => $page['id'],
                 ],
@@ -49,13 +48,12 @@ class PlatformSyncService
 
         // ✅ Instagram Accounts
         foreach ($this->instagram->getRawInstagramAccounts() as $ig) {
-            $imageUrl = Arr::has($ig, 'profile_picture_url') ? 
+            $imageUrl = Arr::has($ig, 'profile_picture_url') ?
                 ImageStore::savePlatformPhoto('instagram', $ig['id'], $ig['profile_picture_url']) : null;
 
             Platform::updateOrCreate(
                 [
                     'user_id' => $this->user->id,
-                    'company_id' => $this->user->currentCompany->id,
                     'provider' => 'instagram',
                     'external_id' => $ig['id'],
                 ],

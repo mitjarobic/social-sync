@@ -13,8 +13,7 @@ class Platform extends BaseModel
         'external_name',
         'external_url',
         'external_token',
-        'external_picture_url',
-        'is_active'
+        'external_picture_url'
     ];
 
     protected $casts = [
