@@ -158,9 +158,17 @@ class PostResource extends Resource
                                                 Forms\Components\DateTimePicker::make('scheduled_at')
                                                     ->required()
                                                     ->label('Scheduled At')
-                                                    ->native(false)
+                                                    ->native(true)
+                                                    // ->minDate(now())
+                                                    // ->maxDate(now()->addDays(30))
                                                     ->timezone(\App\Support\TimezoneHelper::getUserTimezone())
-                                                    ->displayFormat('LLL'),
+                                                    ->dehydrateStateUsing(function ($state) {
+                                                        if (!$state) return null;
+                                                        // Convert from user timezone to UTC for storage
+                                                        return \App\Support\TimezoneHelper::toUTC($state);
+                                                    })
+                                                    ->seconds(false),
+
 
                                                 // Forms\Components\TextInput::make('status')
                                                 //     ->default(function (Get $get) {
@@ -669,7 +677,7 @@ class PostResource extends Resource
                                                     ->columns(1)
                                                     ->collapsed(false),
                                             ])
-                                            ->visible(fn (Get $get) => $get('use_custom_image_settings')),
+                                            ->visible(fn(Get $get) => $get('use_custom_image_settings')),
                                     ]),
                             ])
                             ->columnSpan(1),
@@ -788,7 +796,7 @@ class PostResource extends Resource
                                                     ->forCurrentCompany()
                                                     ->where('provider', 'x')
                                                     ->first();
-                                                    
+
 
                                                 return new HtmlString(
                                                     view('filament.custom.platform-previews.x-preview', [

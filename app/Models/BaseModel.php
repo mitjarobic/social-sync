@@ -14,21 +14,21 @@ class BaseModel extends Model
      * @param  string  $key
      * @return mixed
      */
-    public function getAttribute($key)
-    {
-        $value = parent::getAttribute($key);
+    // public function getAttribute($key)
+    // {
+    //     $value = parent::getAttribute($key);
 
-        // Check if the attribute is a date and convert it to user's timezone
-        if ($value instanceof \Illuminate\Support\Carbon) {
-            // Only convert if the attribute is a date field
-            // This ensures we don't convert non-date fields that happen to be Carbon instances
-            if (in_array($key, $this->getDates())) {
-                return TimezoneHelper::toUserTimezone($value);
-            }
-        }
+    //     // Check if the attribute is a date and convert it to user's timezone
+    //     if ($value instanceof \Illuminate\Support\Carbon) {
+    //         // Only convert if the attribute is a date field
+    //         // This ensures we don't convert non-date fields that happen to be Carbon instances
+    //         if (in_array($key, $this->getDates())) {
+    //             return TimezoneHelper::toUserTimezone($value);
+    //         }
+    //     }
 
-        return $value;
-    }
+    //     return $value;
+    // }
 
     /**
      * Get the attributes that should be converted to dates.
