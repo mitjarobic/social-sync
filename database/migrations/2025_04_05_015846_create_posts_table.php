@@ -15,8 +15,8 @@ return new class extends Migration
         Schema::create('posts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained()->onDelete('cascade'); // Foreign key to Company
-            $table->string('content');
-            $table->string('image_content')->nullable();
+            $table->text('content');
+            $table->text('image_content')->nullable();
             $table->string('image_author')->nullable();
             $table->string('image_path')->nullable();
             $table->foreignId('image_template_id')->nullable()->constrained()->nullOnDelete();
