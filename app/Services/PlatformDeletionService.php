@@ -28,8 +28,8 @@ class PlatformDeletionService
                 DB::rollBack();
                 return [
                     'success' => false,
-                    'message' => "Cannot delete platform '{$platform->label}' because it has {$platformPostsCount} associated " .
-                        ($platformPostsCount === 1 ? 'post' : 'posts') . ". Please delete the " .
+                    'message' => "Cannot remove platform '{$platform->label}' because it has {$platformPostsCount} associated " .
+                        ($platformPostsCount === 1 ? 'post' : 'posts') . ". Please remove the " .
                         ($platformPostsCount === 1 ? 'post' : 'posts') . " first."
                 ];
             }
@@ -47,7 +47,7 @@ class PlatformDeletionService
 
             return [
                 'success' => true,
-                'message' => "Platform '{$platform->label}' deleted successfully."
+                'message' => "Platform '{$platform->label}' removed successfully."
             ];
         } catch (\Exception $e) {
             // Rollback the transaction
@@ -61,7 +61,7 @@ class PlatformDeletionService
 
             return [
                 'success' => false,
-                'message' => "Failed to delete platform: {$e->getMessage()}"
+                'message' => "Failed to remove platform: {$e->getMessage()}"
             ];
         }
     }

@@ -2,7 +2,6 @@
 
 namespace App\Filament\Company\Resources\PlatformResource\Pages;
 
-use Filament\Actions;
 use App\Models\Platform;
 use Filament\Resources\Pages\CreateRecord;
 use App\Filament\Company\Resources\PlatformResource;
@@ -10,6 +9,9 @@ use App\Filament\Company\Resources\PlatformResource;
 class CreatePlatform extends CreateRecord
 {
     protected static string $resource = PlatformResource::class;
+
+    protected static ?string $title = 'Add Platform';
+    protected static ?string $navigationLabel = 'Add';
 
     protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
     {
@@ -63,5 +65,30 @@ class CreatePlatform extends CreateRecord
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
+    }
+
+    protected function getCreateFormAction(): \Filament\Actions\Action
+    {
+        return parent::getCreateFormAction()
+            ->label('Add');
+    }
+
+    protected function getCreateAnotherFormAction(): \Filament\Actions\Action
+    {
+        return parent::getCreateAnotherFormAction()
+            ->label('Add & add another');
+    }
+
+    public function getBreadcrumbs(): array
+    {
+        $breadcrumbs = parent::getBreadcrumbs();
+
+        // Replace the last breadcrumb (which is "Create") with "Add"
+        if (!empty($breadcrumbs)) {
+            $lastKey = array_key_last($breadcrumbs);
+            $breadcrumbs[$lastKey] = 'Add';
+        }
+
+        return $breadcrumbs;
     }
 }

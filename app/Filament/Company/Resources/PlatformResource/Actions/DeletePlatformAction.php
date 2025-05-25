@@ -35,10 +35,11 @@ class DeletePlatformAction
     protected static function configureAction($action)
     {
         return $action
+            ->label('Remove')
             ->requiresConfirmation()
-            ->modalHeading('Delete platform?')
-            ->modalDescription('Are you sure you want to delete this platform? This action cannot be undone.')
-            ->modalSubmitActionLabel('Yes, delete platform')
+            ->modalHeading('Remove platform?')
+            ->modalDescription('Are you sure you want to remove this platform? This action cannot be undone.')
+            ->modalSubmitActionLabel('Yes, remove platform')
             ->action(function (Platform $record) {
                 return static::handleDeletion($record);
             });

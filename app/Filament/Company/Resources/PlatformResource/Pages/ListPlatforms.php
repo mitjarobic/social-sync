@@ -15,7 +15,8 @@ class ListPlatforms extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\CreateAction::make()
+                ->label('Add Platform'),
             Actions\Action::make('refresh')
                 ->label('Refresh')
                 ->icon('heroicon-o-arrow-path')
@@ -25,7 +26,7 @@ class ListPlatforms extends ListRecords
 
     protected function refreshTable()
     {
-        (new PlatformSyncService(auth()->user()))->syncPlatforms();
+        (new PlatformSyncService(\Filament\Facades\Filament::auth()->user()))->syncPlatforms();
 
           Notification::make()
                 ->success()

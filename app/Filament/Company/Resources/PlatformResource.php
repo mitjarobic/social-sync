@@ -174,7 +174,8 @@ class PlatformResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->label('Remove Selected'),
                 ]),
             ]);
     }
@@ -190,7 +191,7 @@ class PlatformResource extends Resource
     {
         return [
             'index' => Pages\ListPlatforms::route('/'),
-            'create' => Pages\CreatePlatform::route('/create'),
+            'create' => Pages\CreatePlatform::route('/add'),
             'edit' => Pages\EditPlatform::route('/{record}/edit'),
         ];
     }
