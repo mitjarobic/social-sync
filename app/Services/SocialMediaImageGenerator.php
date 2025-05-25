@@ -56,9 +56,25 @@ class SocialMediaImageGenerator
             }
         }
 
-        // Calculate text positioning
-        $wrappedText = wordwrap($content, $maxWidth, "\n");
-        $lines = explode("\n", $wrappedText);
+        // Calculate text positioning - preserve manual newlines and apply word wrapping
+        // This approach respects user-entered newlines while still applying automatic
+        // word wrapping to lines that exceed the maximum width
+        $lines = [];
+        $manualLines = explode("\n", $content); // Split by user-entered newlines first
+
+        foreach ($manualLines as $line) {
+            // Trim whitespace but preserve empty lines for spacing
+            $trimmedLine = trim($line);
+
+            if (strlen($trimmedLine) > $maxWidth) {
+                // Apply word wrapping only to lines that exceed maxWidth
+                $wrappedLine = wordwrap($trimmedLine, $maxWidth, "\n");
+                $lines = array_merge($lines, explode("\n", $wrappedLine));
+            } else {
+                // Keep the line as is (including empty lines for spacing)
+                $lines[] = $trimmedLine;
+            }
+        }
         $totalHeight = count($lines) * $contentFontSize * $lineHeight;
 
         // Adjust base Y position based on text position setting

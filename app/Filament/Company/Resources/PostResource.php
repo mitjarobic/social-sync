@@ -52,23 +52,24 @@ class PostResource extends Resource
 
                                         Forms\Components\Textarea::make('content')
                                             ->required()
-                                            ->label('Post Content')
+                                            ->label('Content (Caption)')
                                             ->live(debounce: 500)
                                             ->afterStateUpdated(function ($set) {
                                                 $set('preview_version', now()->timestamp);
                                             })
+                                            ->rows(4)
                                             ->columnSpanFull(),
 
                                         // Image content and author moved to Content tab
-                                        Forms\Components\Section::make('Image Text')
+                                        Forms\Components\Section::make('Image')
                                             ->schema([
-                                                Forms\Components\TextInput::make('image_content')
-                                                    ->required()
+                                                Forms\Components\Textarea::make('image_content')
                                                     ->live(debounce: 500)
                                                     ->afterStateUpdated(function ($set) {
                                                         $set('preview_version', now()->timestamp);
                                                     })
-                                                    ->label('Content'),
+                                                    ->label('Content')
+                                                    ->rows(3),
 
                                                 Forms\Components\TextInput::make('image_author')
                                                     ->live(debounce: 500)
@@ -77,8 +78,7 @@ class PostResource extends Resource
                                                     })
                                                     ->label('Author'),
                                             ])
-                                            ->columns(1)
-                                            ->collapsed(false),
+                                            ->columns(1),
 
                                         Forms\Components\Select::make('status')
                                             ->options(function () {
@@ -125,6 +125,7 @@ class PostResource extends Resource
                                     ->schema([
                                         Forms\Components\Repeater::make('platformPosts')
                                             ->relationship()
+                                            ->live()
                                             ->schema([
                                                 Forms\Components\Hidden::make('company_id')
                                                     ->default(Auth::user()->currentCompany->id),
@@ -161,13 +162,13 @@ class PostResource extends Resource
                                                     ->timezone(\App\Support\TimezoneHelper::getUserTimezone())
                                                     ->displayFormat('LLL'),
 
-                                                Forms\Components\TextInput::make('status')
-                                                    ->default(function (Get $get) {
-                                                        $postStatus = $get('../../status');
-                                                        return $postStatus === PostStatus::SCHEDULED->value
-                                                            ? 'queued'
-                                                            : 'draft';
-                                                    })
+                                                // Forms\Components\TextInput::make('status')
+                                                //     ->default(function (Get $get) {
+                                                //         $postStatus = $get('../../status');
+                                                //         return $postStatus === PostStatus::SCHEDULED->value
+                                                //             ? 'queued'
+                                                //             : 'draft';
+                                                //     })
                                             ])
                                             ->label('Scheduled Platforms')
                                             ->columns(2)
@@ -680,7 +681,8 @@ class PostResource extends Resource
                                 // Facebook Preview Tab
                                 Forms\Components\Tabs\Tab::make('Facebook')
                                     ->schema([
-                                        Forms\Components\Placeholder::make('facebook_preview')
+                                        Forms\Components\Placeholder::make('')
+                                            ->live()
                                             ->content(function (Get $get) {
                                                 $bgImagePath = $get('image_bg_image_path');
 
@@ -691,6 +693,12 @@ class PostResource extends Resource
                                                 } else {
                                                     $bgImagePath = null;
                                                 }
+
+                                                // Get the active Facebook platform for this company
+                                                $facebookPlatform = \App\Models\Platform::query()
+                                                    ->forCurrentCompany()
+                                                    ->where('provider', 'facebook')
+                                                    ->first();
 
                                                 return new HtmlString(
                                                     view(
@@ -708,6 +716,7 @@ class PostResource extends Resource
                                                             'bgColor' => $get('image_bg_color'),
                                                             'bgImagePath' => $bgImagePath,
                                                             'version' => $get('preview_version'),
+                                                            'platform' => $facebookPlatform,
                                                         ]
                                                     )->render()
                                                 );
@@ -718,7 +727,8 @@ class PostResource extends Resource
                                 // Instagram Preview Tab
                                 Forms\Components\Tabs\Tab::make('Instagram')
                                     ->schema([
-                                        Forms\Components\Placeholder::make('instagram_preview')
+                                        Forms\Components\Placeholder::make('')
+                                            ->live()
                                             ->content(function (Get $get) {
                                                 $bgImagePath = $get('image_bg_image_path');
 
@@ -729,6 +739,12 @@ class PostResource extends Resource
                                                 } else {
                                                     $bgImagePath = null;
                                                 }
+
+                                                // Get the active Instagram platform for this company
+                                                $instagramPlatform = \App\Models\Platform::query()
+                                                    ->forCurrentCompany()
+                                                    ->where('provider', 'instagram')
+                                                    ->first();
 
                                                 return new HtmlString(
                                                     view('filament.custom.platform-previews.instagram-preview', [
@@ -744,6 +760,7 @@ class PostResource extends Resource
                                                         'bgColor' => $get('image_bg_color'),
                                                         'bgImagePath' => $bgImagePath,
                                                         'version' => $get('preview_version'),
+                                                        'platform' => $instagramPlatform,
                                                     ])->render()
                                                 );
                                             })
@@ -753,7 +770,8 @@ class PostResource extends Resource
                                 // X Preview Tab
                                 Forms\Components\Tabs\Tab::make('X')
                                     ->schema([
-                                        Forms\Components\Placeholder::make('x_preview')
+                                        Forms\Components\Placeholder::make('')
+                                            ->live()
                                             ->content(function (Get $get) {
                                                 $bgImagePath = $get('image_bg_image_path');
 
@@ -764,6 +782,13 @@ class PostResource extends Resource
                                                 } else {
                                                     $bgImagePath = null;
                                                 }
+
+                                                // Get the active X platform for this company
+                                                $xPlatform = \App\Models\Platform::query()
+                                                    ->forCurrentCompany()
+                                                    ->where('provider', 'x')
+                                                    ->first();
+                                                    
 
                                                 return new HtmlString(
                                                     view('filament.custom.platform-previews.x-preview', [
@@ -779,6 +804,7 @@ class PostResource extends Resource
                                                         'bgColor' => $get('image_bg_color'),
                                                         'bgImagePath' => $bgImagePath,
                                                         'version' => $get('preview_version'),
+                                                        'platform' => $xPlatform,
                                                     ])->render()
                                                 );
                                             })

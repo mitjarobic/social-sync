@@ -29,7 +29,8 @@ class TestImageAccess extends Command
     public function handle(SocialMediaImageGenerator $generator)
     {
 
-        $content = "A great quote on the image!";
+        // Test content with manual newlines
+        $content = "A great quote\non the image!\n\nWith multiple lines\nand spacing";
         $author = "TCUA";
 
         // Options for image generation
