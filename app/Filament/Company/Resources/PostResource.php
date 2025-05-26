@@ -45,11 +45,10 @@ class PostResource extends Resource
 
                         Forms\Components\Tabs::make('Post Settings')
                             ->tabs([
-                                // Tab 1: Content
-                                Forms\Components\Tabs\Tab::make('Content')
+                                // Tab 1: Basic
+                                Forms\Components\Tabs\Tab::make('Basic')
                                     ->schema([
-                                        // Hidden field for preview version
-
+                                        // Template Selection in Basic tab
                                         Forms\Components\Textarea::make('content')
                                             ->required()
                                             ->label('Content (Caption)')
@@ -117,7 +116,9 @@ class PostResource extends Resource
                                                 }
                                             ])
                                             ->columnSpanFull()
-                                            ->visibleOn('edit') // Only show when editing
+                                            ->visibleOn('edit'), // Only show when editing
+
+
                                     ]),
 
                                 // Tab 2: Platforms
@@ -178,7 +179,7 @@ class PostResource extends Resource
                                                 //             : 'draft';
                                                 //     })
                                             ])
-                                            ->label('Scheduled Platforms')
+                                            ->label('')
                                             ->columns(2)
                                             ->addActionLabel('Add Platform')
                                             ->maxItems(function () {
@@ -192,125 +193,121 @@ class PostResource extends Resource
                                             ->columnSpanFull(),
                                     ]),
 
-                                // Tab 3: Image Template
-                                Forms\Components\Tabs\Tab::make('Image Template')
+                                // Tab 3: Template
+                                Forms\Components\Tabs\Tab::make('Design')
                                     ->schema([
+
+                                        Forms\Components\Select::make('image_template_id')
+                                            ->label('Select Image Template')
+                                            ->options(function () {
+                                                return ImageTemplate::where('company_id', Auth::user()->currentCompany->id)
+                                                    ->pluck('name', 'id');
+                                            })
+                                            ->searchable()
+                                            ->preload()
+                                            ->live()
+                                            ->afterStateUpdated(function (Set $set, $state) {
+                                                if ($state) {
+                                                    // When a template is selected, load its properties
+                                                    $template = ImageTemplate::find($state);
+                                                    if ($template) {
+                                                        // Set use_custom_image_settings to false by default
+                                                        $set('use_custom_image_settings', false);
+
+                                                        // Load template properties into the form
+                                                        if ($template->background_type === 'color') {
+                                                            $set('image_bg_color', $template->background_color);
+                                                            $set('image_bg_image_path', null);
+                                                        } else {
+                                                            $set('image_bg_image_path', $template->background_image);
+                                                            $set('image_bg_color', '#000000'); // Default fallback
+                                                        }
+
+                                                        // Default font settings
+                                                        $set('image_font', $template->font_family);
+                                                        $set('image_font_size', $template->font_size);
+                                                        $set('image_font_color', $template->font_color);
+
+                                                        // Content-specific font settings
+                                                        $set('content_font', $template->content_font_family ?? $template->font_family);
+                                                        $set('content_font_size', $template->content_font_size ?? $template->font_size);
+                                                        $set('content_font_color', $template->content_font_color ?? $template->font_color);
+
+                                                        // Author-specific font settings
+                                                        $set('author_font', $template->author_font_family ?? $template->font_family);
+                                                        $set('author_font_size', $template->author_font_size ?? ($template->font_size ? intval($template->font_size * 0.7) : 78));
+                                                        $set('author_font_color', $template->author_font_color ?? $template->font_color);
+
+                                                        // Update image options
+                                                        $set('image_options', [
+                                                            'textAlignment' => $template->text_alignment,
+                                                            'textPosition' => $template->text_position,
+                                                            'padding' => $template->padding,
+                                                        ]);
+
+                                                        // Update preview
+                                                        $set('preview_version', now()->timestamp);
+                                                    }
+                                                }
+                                            }),
+                                            
                                         // Hidden field for preview version
                                         Forms\Components\TextInput::make('preview_version')
                                             ->hidden()
                                             ->default(now()->timestamp),
 
-                                        Forms\Components\Section::make('Template Selection')
-                                            ->schema([
-                                                Forms\Components\Select::make('image_template_id')
-                                                    ->label('Select Template')
-                                                    ->options(function () {
-                                                        return ImageTemplate::where('company_id', Auth::user()->currentCompany->id)
-                                                            ->pluck('name', 'id');
-                                                    })
-                                                    ->searchable()
-                                                    ->preload()
-                                                    ->live()
-                                                    ->afterStateUpdated(function (Set $set, $state) {
-                                                        if ($state) {
-                                                            // When a template is selected, load its properties
-                                                            $template = ImageTemplate::find($state);
-                                                            if ($template) {
-                                                                // Set use_custom_image_settings to false by default
-                                                                $set('use_custom_image_settings', false);
-
-                                                                // Load template properties into the form
-                                                                if ($template->background_type === 'color') {
-                                                                    $set('image_bg_color', $template->background_color);
-                                                                    $set('image_bg_image_path', null);
-                                                                } else {
-                                                                    $set('image_bg_image_path', $template->background_image);
-                                                                    $set('image_bg_color', '#000000'); // Default fallback
-                                                                }
-
-                                                                // Default font settings
-                                                                $set('image_font', $template->font_family);
-                                                                $set('image_font_size', $template->font_size);
-                                                                $set('image_font_color', $template->font_color);
-
-                                                                // Content-specific font settings
-                                                                $set('content_font', $template->content_font_family ?? $template->font_family);
-                                                                $set('content_font_size', $template->content_font_size ?? $template->font_size);
-                                                                $set('content_font_color', $template->content_font_color ?? $template->font_color);
-
-                                                                // Author-specific font settings
-                                                                $set('author_font', $template->author_font_family ?? $template->font_family);
-                                                                $set('author_font_size', $template->author_font_size ?? ($template->font_size ? intval($template->font_size * 0.7) : 78));
-                                                                $set('author_font_color', $template->author_font_color ?? $template->font_color);
-
-                                                                // Update image options
-                                                                $set('image_options', [
-                                                                    'textAlignment' => $template->text_alignment,
-                                                                    'textPosition' => $template->text_position,
-                                                                    'padding' => $template->padding,
-                                                                ]);
-
-                                                                // Update preview
-                                                                $set('preview_version', now()->timestamp);
+                                        Forms\Components\Toggle::make('use_custom_image_settings')
+                                            ->label('Customize Image Settings')
+                                            ->helperText('Enable to override template settings with custom values')
+                                            ->default(false)
+                                            ->live()
+                                            ->afterStateUpdated(function (Set $set, Get $get, $state) {
+                                                // If toggle is turned off, reload template settings
+                                                if (!$state) {
+                                                    $templateId = $get('image_template_id');
+                                                    if ($templateId) {
+                                                        $template = ImageTemplate::find($templateId);
+                                                        if ($template) {
+                                                            // Load template properties into the form
+                                                            if ($template->background_type === 'color') {
+                                                                $set('image_bg_color', $template->background_color);
+                                                                $set('image_bg_image_path', null);
+                                                            } else {
+                                                                $set('image_bg_image_path', $template->background_image);
+                                                                $set('image_bg_color', '#000000'); // Default fallback
                                                             }
+
+                                                            // Default font settings
+                                                            $set('image_font', $template->font_family);
+                                                            $set('image_font_size', $template->font_size);
+                                                            $set('image_font_color', $template->font_color);
+
+                                                            // Content-specific font settings
+                                                            $set('content_font', $template->content_font_family ?? $template->font_family);
+                                                            $set('content_font_size', $template->content_font_size ?? $template->font_size);
+                                                            $set('content_font_color', $template->content_font_color ?? $template->font_color);
+
+                                                            // Author-specific font settings
+                                                            $set('author_font', $template->author_font_family ?? $template->font_family);
+                                                            $set('author_font_size', $template->author_font_size ?? ($template->font_size ? intval($template->font_size * 0.7) : 78));
+                                                            $set('author_font_color', $template->author_font_color ?? $template->font_color);
+
+                                                            // Update image options
+                                                            $set('image_options', [
+                                                                'textAlignment' => $template->text_alignment,
+                                                                'textPosition' => $template->text_position,
+                                                                'padding' => $template->padding,
+                                                            ]);
                                                         }
-                                                    }),
+                                                    }
+                                                }
 
-                                                Forms\Components\Toggle::make('use_custom_image_settings')
-                                                    ->label('Customize Image Settings')
-                                                    ->helperText('Enable to override template settings with custom values')
-                                                    ->default(false)
-                                                    ->live()
-                                                    ->afterStateUpdated(function (Set $set, Get $get, $state) {
-                                                        // If toggle is turned off, reload template settings
-                                                        if (!$state) {
-                                                            $templateId = $get('image_template_id');
-                                                            if ($templateId) {
-                                                                $template = ImageTemplate::find($templateId);
-                                                                if ($template) {
-                                                                    // Load template properties into the form
-                                                                    if ($template->background_type === 'color') {
-                                                                        $set('image_bg_color', $template->background_color);
-                                                                        $set('image_bg_image_path', null);
-                                                                    } else {
-                                                                        $set('image_bg_image_path', $template->background_image);
-                                                                        $set('image_bg_color', '#000000'); // Default fallback
-                                                                    }
-
-                                                                    // Default font settings
-                                                                    $set('image_font', $template->font_family);
-                                                                    $set('image_font_size', $template->font_size);
-                                                                    $set('image_font_color', $template->font_color);
-
-                                                                    // Content-specific font settings
-                                                                    $set('content_font', $template->content_font_family ?? $template->font_family);
-                                                                    $set('content_font_size', $template->content_font_size ?? $template->font_size);
-                                                                    $set('content_font_color', $template->content_font_color ?? $template->font_color);
-
-                                                                    // Author-specific font settings
-                                                                    $set('author_font', $template->author_font_family ?? $template->font_family);
-                                                                    $set('author_font_size', $template->author_font_size ?? ($template->font_size ? intval($template->font_size * 0.7) : 78));
-                                                                    $set('author_font_color', $template->author_font_color ?? $template->font_color);
-
-                                                                    // Update image options
-                                                                    $set('image_options', [
-                                                                        'textAlignment' => $template->text_alignment,
-                                                                        'textPosition' => $template->text_position,
-                                                                        'padding' => $template->padding,
-                                                                    ]);
-                                                                }
-                                                            }
-                                                        }
-
-                                                        $set('preview_version', now()->timestamp);
-                                                    }),
-                                            ]),
+                                                $set('preview_version', now()->timestamp);
+                                            }),
 
                                         // Custom Settings (only visible when use_custom_image_settings is true)
-                                        Forms\Components\Section::make('Custom Settings')
+                                        Forms\Components\Grid::make(1)
                                             ->schema([
-
-
                                                 // Content Text Settings
                                                 Forms\Components\Section::make('Content Text Settings')
                                                     ->schema([
