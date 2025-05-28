@@ -38,3 +38,19 @@ task('build', function () {
 
 after('deploy:vendors', 'build');
 
+task('deploy:laravel:optimize', function () {
+    run('{{bin/php}} {{release_path}}/artisan optimize:clear');
+    run('{{bin/php}} {{release_path}}/artisan config:cache');
+    run('{{bin/php}} {{release_path}}/artisan route:cache');
+    run('{{bin/php}} {{release_path}}/artisan view:cache');
+});
+after('deploy:symlink', 'deploy:laravel:optimize');
+
+task('horizon:restart', function () {
+    run('bash /home/stillcoding/social-sync-development/deploy.sh');
+});
+
+after('deploy:symlink', 'horizon:restart');
+
+
+
