@@ -69,12 +69,22 @@ class Post extends BaseModel
         //         $post->platformPosts()
         //             ->where('status', \App\Enums\PlatformPostStatus::DRAFT)
         //             ->update(['status' => \App\Enums\PlatformPostStatus::QUEUED]);
+        //     } // // Handle both created and updated events
+        // static::created(function ($post) {
+        //     // When a post is created with SCHEDULED status, queue all platform posts
+        //     if ($post->status === \App\Enums\PostStatus::SCHEDULED) {
+        //         $post->platformPosts()
+        //             ->where('status', \App\Enums\PlatformPostStatus::DRAFT)
+        //             ->update(['status' => \App\Enums\PlatformPostStatus::QUEUED]);
         //     }
 
         //     $post->createOrUpdateImageIfNecessary();
         // });
 
-        static::updated(function ($post) {
+        //     $post->createOrUpdateImageIfNecessary();
+        // });
+
+        static::saved(function ($post) {
             // When post is published, queue all platform posts
             if ($post->status === \App\Enums\PostStatus::PUBLISHING) {
                 $post->platformPosts()
@@ -145,19 +155,21 @@ class Post extends BaseModel
 
     public function createOrUpdateImageIfNecessary()
     {
-        if ($this->isDirty('image_content') ||
-            $this->isDirty('image_author') ||
-            $this->isDirty('content_font') ||
-            $this->isDirty('content_font_size') ||
-            $this->isDirty('content_font_color') ||
-            $this->isDirty('author_font') ||
-            $this->isDirty('author_font_size') ||
-            $this->isDirty('author_font_color') ||
-            $this->isDirty('image_bg_color') ||
-            $this->isDirty('image_bg_image_path') ||
-            $this->isDirty('image_options') ||
-            $this->isDirty('image_template_id') ||
-            $this->isDirty('use_custom_image_settings')
+        if (//!$this->exists || // First time — not saved yet$this->isDirty('image_content') ||
+            $this->isDirty([
+                'image_author', 
+                'content_font', 
+                'content_font_size', 
+                'content_font_color',
+                'author_font', 
+                'author_font_size',
+                'author_font_color',
+                'image_bg_color',
+                'image_bg_image_path',
+                'image_options',
+                'image_template_id',
+                'use_custom_image_settings',
+            ]) 
         ) {
             $this->image_path = $this->image_path ?? 'posts/' . now()->timestamp . '.jpg';
 
