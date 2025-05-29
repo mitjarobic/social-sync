@@ -17,4 +17,29 @@ class EditPost extends EditRecord
                 ->successRedirectUrl(PostResource::getUrl('index')),
         ];
     }
+
+    protected function getFormActions(): array
+    {
+        return [
+            \Filament\Actions\Action::make('save')
+                ->label('Save')
+                ->requiresConfirmation(fn() => $this->form->getState()['status'] === 'draft')
+                ->modalHeading('Keep status as draft?')
+                ->modalDescription('Do you want to keep the status to "draft" before saving?')
+                ->modalSubmitActionLabel('Yes')
+                ->modalCancelActionLabel('No')
+                ->action(function () {
+                    $data = $this->form->getState();
+
+                    $this->record->fill($data)->save();
+
+                    \Filament\Notifications\Notification::make()
+                        ->title('Saved')
+                        ->success()
+                        ->send();
+
+                    $this->redirect($this->getResource()::getUrl('index'));
+                }),
+        ];
+    }
 }

@@ -129,8 +129,10 @@ class Post extends BaseModel
 
         if ($this->platformPosts->contains('status', \App\Enums\PlatformPostStatus::FAILED)) {
             $newStatus = \App\Enums\PostStatus::FAILED;
-        } elseif ($this->platformPosts->contains('status', \App\Enums\PlatformPostStatus::PUBLISHED) &&
-                 !$this->platformPosts->contains(fn($pp) => $pp->status !== \App\Enums\PlatformPostStatus::PUBLISHED)) {
+        } elseif (
+            $this->platformPosts->contains('status', \App\Enums\PlatformPostStatus::PUBLISHED) &&
+            !$this->platformPosts->contains(fn($pp) => $pp->status !== \App\Enums\PlatformPostStatus::PUBLISHED)
+        ) {
             $newStatus = \App\Enums\PostStatus::PUBLISHED;
         } elseif ($this->platformPosts->contains('status', \App\Enums\PlatformPostStatus::PUBLISHING)) {
             $newStatus = \App\Enums\PostStatus::PUBLISHING;
@@ -155,13 +157,15 @@ class Post extends BaseModel
 
     public function createOrUpdateImageIfNecessary()
     {
-        if (//!$this->exists || // First time — not saved yet$this->isDirty('image_content') ||
+        if (
+            $this->image_content &&
             $this->isDirty([
-                'image_author', 
-                'content_font', 
-                'content_font_size', 
+                'image_content',
+                'image_author',
+                'content_font',
+                'content_font_size',
                 'content_font_color',
-                'author_font', 
+                'author_font',
                 'author_font_size',
                 'author_font_color',
                 'image_bg_color',
@@ -169,7 +173,7 @@ class Post extends BaseModel
                 'image_options',
                 'image_template_id',
                 'use_custom_image_settings',
-            ]) 
+            ])
         ) {
             $this->image_path = $this->image_path ?? 'posts/' . now()->timestamp . '.jpg';
 
@@ -243,5 +247,4 @@ class Post extends BaseModel
     {
         return \App\Support\ImageStore::url($this->image_path);
     }
-
 }
