@@ -152,10 +152,7 @@ class PostResource extends Resource
                                                     ->reactive()
                                                     ->label('Platform')
                                                     ->live()
-                                                    ->required()
-                                                    ->afterStateUpdated(function (?string $state, callable $get) {
-                                                        debug($state, $get('../../postPlatforms'));
-                                                    }),
+                                                    ->required(),
                                                 Forms\Components\DateTimePicker::make('scheduled_at')
                                                     ->required()
                                                     ->label('Scheduled At')
