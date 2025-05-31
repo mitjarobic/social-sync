@@ -106,7 +106,7 @@ class SocialMediaImageGenerator
 
         // Add author if exists
         if ($author) {
-            $image->text("— " . $author, 540, $yPos + 140, function ($font) use ($authorFont, $authorFontSize, $authorFontColor, $textAlignment) {
+            $image->text($author, 540, $yPos + 140, function ($font) use ($authorFont, $authorFontSize, $authorFontColor, $textAlignment) {
                 $font->filename(public_path('fonts/' . $authorFont));
                 $font->size($authorFontSize);
                 $font->color($authorFontColor);
