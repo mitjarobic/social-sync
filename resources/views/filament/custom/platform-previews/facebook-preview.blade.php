@@ -23,6 +23,20 @@
                 </svg>
             </div>
         </div>
+
+        <div class="px-3 pb-2 text-sm text-gray-500">
+            {!! nl2br(e($content ?? '')) !!}
+        </div>
+
+        @if(!empty($imageContent))
+        <div>
+            <img
+                src="/generate-image?content={{ urlencode($imageContent ?? '') }}&author={{ urlencode($author ?? '') }}&contentFont={{ $contentFont ?? 'sansSerif.ttf' }}&contentFontSize={{ $contentFontSize ?? 112 }}&contentFontColor={{ urlencode($contentFontColor ?? '#FFFFFF') }}&authorFont={{ $authorFont ?? 'sansSerif.ttf' }}&authorFontSize={{ $authorFontSize ?? 78 }}&authorFontColor={{ urlencode($authorFontColor ?? '#FFFFFF') }}&bgColor={{ urlencode($bgColor ?? '#000000') }}&bgImagePath={{ urlencode($bgImagePath ?? '') }}&v={{ $version ?? time() }}"
+                class="w-full object-cover"
+                wire:loading.class="opacity-50"
+            >
+        </div>
+    @endif
     @else
         <!-- No Facebook platform message -->
         <div class="p-6 text-center">
@@ -34,22 +48,6 @@
             <div class="text-gray-600 font-medium">No Facebook Platform</div>
             <div class="text-gray-500 text-sm">Add a Facebook platform in the Platforms section to see preview</div>
         </div>
-    @endif
-
-    <!-- Post content - always show -->
-    <div class="px-3 pb-2 text-sm text-gray-500">
-        {!! nl2br(e($content ?? '')) !!}
-    </div>
-
-    <!-- Image - always show if content exists -->
-    @if(!empty($imageContent))
-    <div>
-        <img
-            src="/generate-image?content={{ urlencode($imageContent ?? '') }}&author={{ urlencode($author ?? '') }}&contentFont={{ $contentFont ?? 'sansSerif.ttf' }}&contentFontSize={{ $contentFontSize ?? 112 }}&contentFontColor={{ urlencode($contentFontColor ?? '#FFFFFF') }}&authorFont={{ $authorFont ?? 'sansSerif.ttf' }}&authorFontSize={{ $authorFontSize ?? 78 }}&authorFontColor={{ urlencode($authorFontColor ?? '#FFFFFF') }}&bgColor={{ urlencode($bgColor ?? '#000000') }}&bgImagePath={{ urlencode($bgImagePath ?? '') }}&v={{ $version ?? time() }}"
-            class="w-full object-cover"
-            wire:loading.class="opacity-50"
-        >
-    </div>
     @endif
 
     <!-- Action buttons - always show -->

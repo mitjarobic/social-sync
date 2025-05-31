@@ -206,6 +206,15 @@ class PostResource extends Resource
                                             ->searchable()
                                             ->preload()
                                             ->live()
+                                            ->default(function () {
+                                                $template = ImageTemplate::where('company_id', Auth::user()->currentCompany->id)
+                                                    ->where('is_default', true)
+                                                    ->firstOr(function () {
+                                                        return ImageTemplate::first();
+                                                    });
+
+                                                return $template->id;
+                                            })
                                             ->afterStateUpdated(function (Set $set, $state) {
                                                 if ($state) {
                                                     // When a template is selected, load its properties
@@ -250,7 +259,7 @@ class PostResource extends Resource
                                                     }
                                                 }
                                             }),
-                                            
+
                                         // Hidden field for preview version
                                         Forms\Components\TextInput::make('preview_version')
                                             ->hidden()
@@ -689,40 +698,11 @@ class PostResource extends Resource
                                         Forms\Components\Placeholder::make('')
                                             ->live()
                                             ->content(function (Get $get) {
-                                                $bgImagePath = $get('image_bg_image_path');
-
-                                                // If it's an array (from FileUpload), get the first element
-                                                if (is_array($bgImagePath) && !empty($bgImagePath)) {
-                                                    $bgImagePath = reset($bgImagePath);
-                                                    $bgImagePath = $bgImagePath instanceof TemporaryUploadedFile ? $bgImagePath->getPathName() : ImageStore::path($bgImagePath);
-                                                } else {
-                                                    $bgImagePath = null;
-                                                }
-
-                                                // Get the active Facebook platform for this company
-                                                $facebookPlatform = \App\Models\Platform::query()
-                                                    ->forCurrentCompany()
-                                                    ->where('provider', 'facebook')
-                                                    ->first();
-
+                                                $data = static::getImageData($get, 'facebook');
                                                 return new HtmlString(
                                                     view(
                                                         'filament.custom.platform-previews.facebook-preview',
-                                                        [
-                                                            'content' => $get('content'),
-                                                            'imageContent' => $get('image_content'),
-                                                            'author' => $get('image_author'),
-                                                            'contentFont' => $get('content_font'),
-                                                            'contentFontSize' => $get('content_font_size'),
-                                                            'contentFontColor' => $get('content_font_color'),
-                                                            'authorFont' => $get('author_font'),
-                                                            'authorFontSize' => $get('author_font_size'),
-                                                            'authorFontColor' => $get('author_font_color'),
-                                                            'bgColor' => $get('image_bg_color'),
-                                                            'bgImagePath' => $bgImagePath,
-                                                            'version' => $get('preview_version'),
-                                                            'platform' => $facebookPlatform,
-                                                        ]
+                                                        static::getImageData($get, 'facebook')
                                                     )->render()
                                                 );
                                             })
@@ -750,6 +730,8 @@ class PostResource extends Resource
                                                     ->forCurrentCompany()
                                                     ->where('provider', 'instagram')
                                                     ->first();
+
+
 
                                                 return new HtmlString(
                                                     view('filament.custom.platform-previews.instagram-preview', [
@@ -831,12 +813,13 @@ class PostResource extends Resource
                     ->label('')
                     ->size(30)
                     ->getStateUsing(function ($record) {
-                        return $record->image_path ? ImageStore::url($record->image_path) : null;
+                        return $record->image_path ? ImageStore::url($record->image_path) . '?v=' . $record->updated_at->timestamp : null;
                     }),
 
                 Tables\Columns\TextColumn::make('content')
                     ->label('Caption')
                     ->limit(50)
+                    ->tooltip(fn ($record) => $record->content)
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('image_content')
@@ -1002,6 +985,44 @@ class PostResource extends Resource
             'index' => Pages\ListPosts::route('/'),
             'create' => Pages\CreatePost::route('/create'),
             'edit' => Pages\EditPost::route('/{record}/edit'),
+        ];
+    }
+
+    public static function getImageData($get, $provider): array
+    {
+        $templateId = $get('image_template_id');
+        $template = \App\Models\ImageTemplate::find($templateId);
+
+        $bgImagePath = $template ? $template->background_image : $get('image_bg_image_path');
+
+        // If it's an array (from FileUpload), get the first element
+        if (is_array($bgImagePath) && !empty($bgImagePath)) {
+            $bgImagePath = reset($bgImagePath);
+            $bgImagePath = $bgImagePath instanceof TemporaryUploadedFile ? $bgImagePath->getPathName() : ImageStore::path($bgImagePath);
+        } else {
+            $bgImagePath = null;
+        }
+
+        // Get the active Facebook platform for this company
+        $facebookPlatform = \App\Models\Platform::query()
+            ->forCurrentCompany()
+            ->where('provider', $provider)
+            ->first();
+
+        return   [
+            'content' => $get('content'),
+            'imageContent' => $get('image_content'),
+            'author' => $get('image_author'),
+            'contentFont' => $template ? $template->content_font_family : $get('content_font'),
+            'contentFontSize' => $template ? $template->content_font_size : $get('content_font_size'),
+            'contentFontColor' => $template ? $template->content_font_color : $get('content_font_color'),
+            'authorFont' => $template ? $template->author_font_family : $get('author_font'),
+            'authorFontSize' => $template ? $template->author_font_size : $get('author_font_size'),
+            'authorFontColor' => $template ? $template->author_font_color : $get('author_font_color'),
+            'bgColor' => $template ? $template->background_color : $get('image_bg_color'),
+            'bgImagePath' => $bgImagePath,
+            'version' => $get('preview_version'),
+            'platform' => $facebookPlatform,
         ];
     }
 }

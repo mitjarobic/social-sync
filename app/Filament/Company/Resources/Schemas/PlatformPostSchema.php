@@ -4,6 +4,7 @@ namespace App\Filament\Company\Resources\Schemas;
 
 use Filament\Forms;
 use Filament\Tables;
+use App\Support\ImageStore;
 use App\Enums\PlatformPostStatus;
 
 class PlatformPostSchema
@@ -46,7 +47,18 @@ class PlatformPostSchema
     public static function table(): array
     {
         return [
-            Tables\Columns\TextColumn::make('post.content')->label('Post'),
+            Tables\Columns\ImageColumn::make('post.imagePath')
+                ->label('')
+                ->size(30)
+                ->getStateUsing(function ($record) {
+                    return $record->post->image_path ? ImageStore::url($record->post->image_path) . '?v=' . $record->updated_at->timestamp : null;
+                }),
+
+            Tables\Columns\TextColumn::make('post.content')
+                ->label('Caption')
+                ->limit(40)
+                ->tooltip(fn($record) => $record->post->content)
+                ->searchable(),
             Tables\Columns\TextColumn::make('platform.label')->label('Platform'),
             Tables\Columns\TextColumn::make('status')
                 ->badge()
@@ -98,6 +110,7 @@ class PlatformPostSchema
                     if (!$state) return null;
                     return \App\Support\TimezoneHelper::formatInUserTimezone($state);
                 })
+                ->toggleable(isToggledHiddenByDefault: true)
                 ->sortable(),
 
             Tables\Columns\TextColumn::make('scheduled_at')
@@ -106,10 +119,11 @@ class PlatformPostSchema
                     if (!$state) return null;
                     return \App\Support\TimezoneHelper::formatInUserTimezone($state);
                 })
+                ->toggleable(isToggledHiddenByDefault: true)
                 ->sortable(),
 
             Tables\Columns\TextColumn::make('posted_at')
-                ->label('Posted At')
+                ->label('Published At')
                 ->formatStateUsing(function ($state) {
                     if (!$state) return null;
                     return \App\Support\TimezoneHelper::formatInUserTimezone($state);

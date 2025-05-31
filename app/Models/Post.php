@@ -175,6 +175,7 @@ class Post extends BaseModel
                 'use_custom_image_settings',
             ])
         ) {
+
             $this->image_path = $this->image_path ?? 'posts/' . now()->timestamp . '.jpg';
 
             // Get the template if one is selected
