@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -16,4 +17,14 @@ Artisan::command('platforms:sync-user {userId}', function ($userId) {
     Artisan::call('platforms:sync', ['--user' => $userId]);
     $this->info("Sync completed");
 })->purpose('Sync platforms for a specific user');
+
+
+// Process scheduled posts every minute
+Schedule::command('posts:process-scheduled')->everyMinute();
+
+        // Update metrics for platform posts every hour
+Schedule::command('posts:refresh-metrics')->hourly();
+
+        // Sync platforms (Facebook pages and Instagram accounts) daily
+Schedule::command('platforms:sync --all')->daily();
 
