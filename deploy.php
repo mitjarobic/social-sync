@@ -47,7 +47,11 @@ task('deploy:laravel:optimize', function () {
 after('deploy:symlink', 'deploy:laravel:optimize');
 
 task('horizon:restart', function () {
-    run('bash /home/stillcoding/social-sync-development/deploy.sh');
+    if (has('env') && get('env') === 'production') {
+        run('bash /home/stillcoding/social-sync-production/horizon.sh');
+    } else {
+        run('bash /home/stillcoding/social-sync-development/horizon.sh');
+    }
 });
 
 after('deploy:symlink', 'horizon:restart');

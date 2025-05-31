@@ -229,7 +229,6 @@ class ThemeResource extends Resource
                                                             ->label('Image File'),
                                                     ])
                                                     ->columns(2)
-                                                    ->defaultItems(1)
                                                     ->collapsible()
                                                     ->persistCollapsed(false)
                                                     ->itemLabel(fn(array $state): ?string => $state['name'] ?? null)

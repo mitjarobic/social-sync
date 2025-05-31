@@ -16,20 +16,11 @@ return new class extends Migration
             $table->string('name');
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->boolean('is_default')->default(false);
-            // $table->json('fonts')->nullable();
-            // $table->json('font_sizes')->nullable();
-            // $table->json('colors')->nullable();
+            $table->json('fonts')->nullable();
+            $table->json('font_sizes')->nullable();
+            $table->json('colors')->nullable();
             $table->json('paddings')->nullable();
             $table->json('background_images')->nullable();
-             // Add content styling fields
-            $table->string('content_font_family')->nullable();
-            $table->integer('content_font_size')->nullable();
-            $table->string('content_font_color')->nullable();
-            
-            // Add author styling fields
-            $table->string('author_font_family')->nullable();
-            $table->integer('author_font_size')->nullable();
-            $table->string('author_font_color')->nullable();
             $table->timestamps();
         });
     }

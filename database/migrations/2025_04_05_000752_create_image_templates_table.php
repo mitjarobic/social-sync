@@ -19,12 +19,20 @@ return new class extends Migration
             $table->enum('background_type', ['color', 'image'])->default('color');
             $table->string('background_color')->nullable();
             $table->string('background_image')->nullable();
-            $table->string('font_family')->nullable();
-            $table->integer('font_size')->nullable();
-            $table->string('font_color')->nullable();
+            // $table->string('font_family')->nullable();
+            // $table->integer('font_size')->nullable();
+            // $table->string('font_color')->nullable();
             $table->enum('text_alignment', ['left', 'center', 'right'])->default('center');
             $table->enum('text_position', ['top', 'middle', 'bottom'])->default('middle');
             $table->integer('padding')->default(20);
+            // Add content styling fields
+            $table->string('content_font_family')->nullable();
+            $table->integer('content_font_size')->nullable();
+            $table->string('content_font_color')->nullable();            
+            // Add author styling fields
+            $table->string('author_font_family')->nullable();
+            $table->integer('author_font_size')->nullable();
+            $table->string('author_font_color')->nullable();
             $table->boolean('is_default')->default(false);
             $table->timestamps();
         });

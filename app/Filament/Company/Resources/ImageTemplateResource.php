@@ -596,7 +596,7 @@ class ImageTemplateResource extends Resource
                     ->label('Background')
                     ->formatStateUsing(function (string $state, ImageTemplate $record): string {
                         if ($state === 'color') {
-                            return 'Color: ' . $record->background_color;
+                            return "Color: <span style='display:inline-block; width:12px; height:12px; background-color:{$record->content_font_color}; border-radius:2px; margin-right:4px;'></span>";
                         } elseif ($state === 'image') {
                             return "<img src='" . ImageStore::url($record->background_image) . "' class='w-10 h-10 object-cover'>";
                         }
