@@ -92,9 +92,9 @@ class ThemeResource extends Resource
                                                             ->required()
                                                             ->numeric()
                                                             ->label('Size (px)')
-                                                            ->minValue(48)
-                                                            ->maxValue(140)
-                                                            ->helperText('Font sizes should be between 48px and 140px for optimal display'),
+                                                            ->minValue(20)
+                                                            ->maxValue(200)
+                                                            ->helperText('Font sizes should be between 30px and 140px for optimal display'),
 
                                                         TextInput::make('name')
                                                             ->required()

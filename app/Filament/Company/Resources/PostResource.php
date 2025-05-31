@@ -715,40 +715,11 @@ class PostResource extends Resource
                                         Forms\Components\Placeholder::make('')
                                             ->live()
                                             ->content(function (Get $get) {
-                                                $bgImagePath = $get('image_bg_image_path');
-
-                                                // If it's an array (from FileUpload), get the first element
-                                                if (is_array($bgImagePath) && !empty($bgImagePath)) {
-                                                    $bgImagePath = reset($bgImagePath);
-                                                    $bgImagePath = $bgImagePath instanceof TemporaryUploadedFile ? $bgImagePath->getPathName() : ImageStore::path($bgImagePath);
-                                                } else {
-                                                    $bgImagePath = null;
-                                                }
-
-                                                // Get the active Instagram platform for this company
-                                                $instagramPlatform = \App\Models\Platform::query()
-                                                    ->forCurrentCompany()
-                                                    ->where('provider', 'instagram')
-                                                    ->first();
-
-
-
                                                 return new HtmlString(
-                                                    view('filament.custom.platform-previews.instagram-preview', [
-                                                        'content' => $get('content'),
-                                                        'imageContent' => $get('image_content'),
-                                                        'author' => $get('image_author'),
-                                                        'contentFont' => $get('content_font'),
-                                                        'contentFontSize' => $get('content_font_size'),
-                                                        'contentFontColor' => $get('content_font_color'),
-                                                        'authorFont' => $get('author_font'),
-                                                        'authorFontSize' => $get('author_font_size'),
-                                                        'authorFontColor' => $get('author_font_color'),
-                                                        'bgColor' => $get('image_bg_color'),
-                                                        'bgImagePath' => $bgImagePath,
-                                                        'version' => $get('preview_version'),
-                                                        'platform' => $instagramPlatform,
-                                                    ])->render()
+                                                    view(
+                                                        'filament.custom.platform-previews.instagram-preview',
+                                                        static::getImageData($get, 'instagram')
+                                                    )->render()
                                                 );
                                             })
                                             ->columnSpanFull(),
@@ -760,39 +731,11 @@ class PostResource extends Resource
                                         Forms\Components\Placeholder::make('')
                                             ->live()
                                             ->content(function (Get $get) {
-                                                $bgImagePath = $get('image_bg_image_path');
-
-                                                // If it's an array (from FileUpload), get the first element
-                                                if (is_array($bgImagePath) && !empty($bgImagePath)) {
-                                                    $bgImagePath = reset($bgImagePath);
-                                                    $bgImagePath = $bgImagePath instanceof TemporaryUploadedFile ? $bgImagePath->getPathName() : ImageStore::path($bgImagePath);
-                                                } else {
-                                                    $bgImagePath = null;
-                                                }
-
-                                                // Get the active X platform for this company
-                                                $xPlatform = \App\Models\Platform::query()
-                                                    ->forCurrentCompany()
-                                                    ->where('provider', 'x')
-                                                    ->first();
-
-
                                                 return new HtmlString(
-                                                    view('filament.custom.platform-previews.x-preview', [
-                                                        'content' => $get('content'),
-                                                        'imageContent' => $get('image_content'),
-                                                        'author' => $get('image_author'),
-                                                        'contentFont' => $get('content_font'),
-                                                        'contentFontSize' => $get('content_font_size'),
-                                                        'contentFontColor' => $get('content_font_color'),
-                                                        'authorFont' => $get('author_font'),
-                                                        'authorFontSize' => $get('author_font_size'),
-                                                        'authorFontColor' => $get('author_font_color'),
-                                                        'bgColor' => $get('image_bg_color'),
-                                                        'bgImagePath' => $bgImagePath,
-                                                        'version' => $get('preview_version'),
-                                                        'platform' => $xPlatform,
-                                                    ])->render()
+                                                    view(
+                                                        'filament.custom.platform-previews.x-preview',
+                                                        static::getImageData($get, 'x')
+                                                    )->render()
                                                 );
                                             })
                                             ->columnSpanFull(),
@@ -819,7 +762,7 @@ class PostResource extends Resource
                 Tables\Columns\TextColumn::make('content')
                     ->label('Caption')
                     ->limit(50)
-                    ->tooltip(fn ($record) => $record->content)
+                    ->tooltip(fn($record) => $record->content)
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('image_content')
