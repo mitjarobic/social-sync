@@ -14,23 +14,25 @@ class PostToX implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public PlatformPost $platformPost) {}
+    public function __construct(public int $platformPostId) {}
 
     public function handle(XService $service)
     {
         try {
-            $imageUrl = $this->platformPost->post->image_path
-                ? \App\Support\DevHelper::withNgrokUrl(\App\Support\ImageStore::url($this->platformPost->post->image_path))
+            $platformPost = PlatformPost::findOrFail($this->platformPostId);
+
+            $imageUrl = $platformPost->post->image_path
+                ? \App\Support\DevHelper::withNgrokUrl(\App\Support\ImageStore::url($platformPost->post->image_path))
                 : null;
 
             $result = $service->post(
-                $this->platformPost->platform->external_id,
-                $this->platformPost->platform->external_token,
-                $this->platformPost->post->content,
+                $platformPost->platform->external_id,
+                $platformPost->platform->external_token,
+                $platformPost->post->content,
                 $imageUrl
             );
 
-            $this->platformPost->update([
+            $platformPost->update([
                 'status' => \App\Enums\PlatformPostStatus::PUBLISHED,
                 'external_id' => $result['response']['id'],
                 'external_url' => $result['url'],
@@ -44,17 +46,17 @@ class PostToX implements ShouldQueue
             ]);
 
         } catch (\Exception $e) {
-            $this->platformPost->update([
+            $platformPost->update([
                 'status' => \App\Enums\PlatformPostStatus::FAILED,
                 'metadata' => ['error' => $e->getMessage()]
             ]);
         }
 
-        $this->updateParentPostStatus();
+        $this->updateParentPostStatus($platformPost);
     }
 
-    protected function updateParentPostStatus()
+    protected function updateParentPostStatus(PlatformPost $platformPost)
     {
-        $this->platformPost->post->refresh()->updateStatus();
+        $platformPost->post->refresh()->updateStatus();
     }
 }

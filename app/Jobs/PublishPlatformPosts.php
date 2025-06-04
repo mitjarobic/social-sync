@@ -19,7 +19,7 @@ class PublishPlatformPosts implements ShouldQueue
     /**
      * Create a new job instance.
      */
-    public function __construct(public Post $post)
+    public function __construct(public int $postId)
     {
     }
 
@@ -29,34 +29,37 @@ class PublishPlatformPosts implements ShouldQueue
     public function handle()
     {
         try {
+
+            $post = Post::findOrFail($this->postId);
+
             // First, update the post status to PUBLISHING
-            $this->post->status = PostStatus::PUBLISHING;
-            $this->post->save();
+            $post->status = PostStatus::PUBLISHING;
+            $post->save();
 
             // Dispatch PublishPlatformPost job for each platform post
-            $this->post->platformPosts()
+            $post->platformPosts()
                 ->where('status', PlatformPostStatus::QUEUED)
                 ->each(function ($platformPost) {
                     // Dispatch the PublishPlatformPost job
-                    PublishPlatformPost::dispatch($platformPost);
+                    PublishPlatformPost::dispatch($platformPost->id);
                 });
 
             // Update the post status again after dispatching all jobs
-            $this->post->updateStatus();
+            $post->updateStatus();
             
             Log::info('Platform posts publishing jobs dispatched', [
-                'post_id' => $this->post->id,
-                'platform_posts_count' => $this->post->platformPosts()->where('status', PlatformPostStatus::QUEUED)->count()
+                'post_id' => $post->id,
+                'platform_posts_count' => $post->platformPosts()->where('status', PlatformPostStatus::QUEUED)->count()
             ]);
         } catch (\Exception $e) {
             Log::error('Error dispatching platform posts publishing jobs', [
-                'post_id' => $this->post->id,
+                'post_id' => $post->id,
                 'error' => $e->getMessage()
             ]);
             
             // Update post status to FAILED
-            $this->post->status = PostStatus::FAILED;
-            $this->post->save();
+            $post->status = PostStatus::FAILED;
+            $post->save();
             
             throw $e;
         }

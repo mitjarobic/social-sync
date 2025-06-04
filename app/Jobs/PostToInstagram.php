@@ -18,28 +18,30 @@ class PostToInstagram implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public PlatformPost $platformPost) {}
+    public function __construct(public int $platformPostId) {}
 
     public function handle(InstagramService $service)
     {
         try {
-            $imageUrl = DevHelper::withNgrokUrl(ImageStore::url($this->platformPost->post->image_path));
+            $platformPost = PlatformPost::findOrFail($this->platformPostId);
+
+            $imageUrl = DevHelper::withNgrokUrl(ImageStore::url($platformPost->post->image_path));
 
             // For Instagram, we need to use the user's Facebook token
-            $token = $this->platformPost->user->facebook_token;
+            $token = $platformPost->user->facebook_token;
 
             if (!$token) {
                 throw new \Exception("No Facebook token found for user. Instagram posting requires a valid Facebook token.");
             }
 
             $result = $service->post(
-                $this->platformPost->platform->external_id,
+                $platformPost->platform->external_id,
                 $token, // Use the user's Facebook token
-                $this->platformPost->post->content,
+                $platformPost->post->content,
                 $imageUrl
             );
 
-            $this->platformPost->update([
+            $platformPost->update([
                 'status' => PlatformPostStatus::PUBLISHED,
                 'external_id' => $result['response']['id'],
                 'external_url' => $result['url'],
@@ -67,17 +69,17 @@ class PostToInstagram implements ShouldQueue
                 $errorDetails['solution'] = 'Check that the user has a valid Facebook token';
             }
 
-            $this->platformPost->update([
+            $platformPost->update([
                 'status' => PlatformPostStatus::FAILED,
                 'metadata' => $errorDetails
             ]);
 
             // Log the error with detailed information
             Log::error('Failed to post to Instagram', [
-                'platform_post_id' => $this->platformPost->id,
-                'platform_id' => $this->platformPost->platform->id,
-                'external_id' => $this->platformPost->platform->external_id,
-                'user_id' => $this->platformPost->user->id ?? null,
+                'platform_post_id' => $platformPost->id,
+                'platform_id' => $platformPost->platform->id,
+                'external_id' => $platformPost->platform->external_id,
+                'user_id' => $platformPost->user->id ?? null,
                 'platform_token_exists' => !empty($token),
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -87,11 +89,11 @@ class PostToInstagram implements ShouldQueue
             throw $e;
         }
 
-        $this->updateParentPostStatus();
+        $this->updateParentPostStatus($platformPost);
     }
 
-    protected function updateParentPostStatus()
+    protected function updateParentPostStatus(PlatformPost $platformPost)
     {
-        $this->platformPost->post->refresh()->updateStatus();
+        $platformPost->post->refresh()->updateStatus();
     }
 }

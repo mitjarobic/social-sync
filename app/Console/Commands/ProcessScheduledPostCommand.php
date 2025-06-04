@@ -34,7 +34,7 @@ class ProcessScheduledPostCommand extends Command
 
         foreach ($posts as $post) {
             // Directly dispatch PublishPlatformPosts job
-            PublishPlatformPosts::dispatch($post);
+            PublishPlatformPosts::dispatch($post->id);
             $this->line("Processing post #{$post->id}");
         }
 
