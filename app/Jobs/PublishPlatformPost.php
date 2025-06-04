@@ -35,8 +35,12 @@ class PublishPlatformPost implements ShouldQueue
      * @param $platformPostId
      * @return void
      */
+
+    public PlatformPost $platformPost;
+
     public function __construct(public int $platformPostId)
     {
+        $this->platformPost = PlatformPost::findOrFail($this->platformPostId);
     }
 
     /**
@@ -46,21 +50,19 @@ class PublishPlatformPost implements ShouldQueue
      */
     public function handle()
     {
-        $platformPost = PlatformPost::findOrFail($this->platformPostId);
-
         // Skip if the platform post is already published
-        if ($platformPost->status === PlatformPostStatus::PUBLISHED) {
+        if ($this->platformPost->status === PlatformPostStatus::PUBLISHED) {
             return;
         }
 
         // Update status to publishing
-        $platformPost->update([
+        $this->platformPost->update([
             'status' => PlatformPostStatus::PUBLISHING,
         ]);
 
         try {
             // Get the platform provider
-            $platform = $platformPost->platform;
+            $platform = $this->platformPost->platform;
             $provider = $platform->provider;
             $success = false;
 
@@ -71,20 +73,20 @@ class PublishPlatformPost implements ShouldQueue
                 // Use the existing platform-specific jobs
                 // When QUEUE_CONNECTION=sync, these will run synchronously
                 match ($provider) {
-                    'facebook' => \App\Jobs\PostToFacebook::dispatch($platformPost->id),
-                    'instagram' => \App\Jobs\PostToInstagram::dispatch($platformPost->id),
-                    'x' => \App\Jobs\PostToX::dispatch($platformPost->id),
+                    'facebook' => \App\Jobs\PostToFacebook::dispatch($this->platformPost->id),
+                    'instagram' => \App\Jobs\PostToInstagram::dispatch($this->platformPost->id),
+                    'x' => \App\Jobs\PostToX::dispatch($this->platformPost->id),
                     default => null
                 };
 
                 // Refresh the platform post to get the updated status
-                $platformPost->refresh();
+                $this->platformPost->refresh();
 
                 // Check if the post was published successfully
-                $success = $platformPost->status === PlatformPostStatus::PUBLISHED;
+                $success = $this->platformPost->status === PlatformPostStatus::PUBLISHED;
             } catch (\Exception $e) {
                 Log::error('Error in platform-specific publishing job', [
-                    'platform_post_id' => $platformPost->id,
+                    'platform_post_id' => $this->platformPost->id,
                     'platform' => $provider,
                     'error' => $e->getMessage()
                 ]);
@@ -93,12 +95,12 @@ class PublishPlatformPost implements ShouldQueue
 
             // If publishing failed, update status to failed
             if (!$success) {
-                $platformPost->update([
+                $this->platformPost->update([
                     'status' => PlatformPostStatus::FAILED,
                 ]);
 
                 Log::error('Failed to publish platform post', [
-                    'platform_post_id' => $platformPost->id,
+                    'platform_post_id' => $this->platformPost->id,
                     'platform' => $provider,
                 ]);
 
@@ -107,17 +109,17 @@ class PublishPlatformPost implements ShouldQueue
             }
 
             // Update the parent post status
-            if ($platformPost->post) {
-                $platformPost->post->updateStatus();
+            if ($this->platformPost->post) {
+                $this->platformPost->post->updateStatus();
             }
         } catch (\Exception $e) {
             // Update status to failed
-            $platformPost->update([
+            $this->platformPost->update([
                 'status' => PlatformPostStatus::FAILED,
             ]);
 
             Log::error('Error publishing platform post', [
-                'platform_post_id' => $platformPost->id,
+                'platform_post_id' => $this->platformPost->id,
                 'error' => $e->getMessage(),
             ]);
 

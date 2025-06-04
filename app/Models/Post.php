@@ -62,38 +62,7 @@ class Post extends BaseModel
 
     protected static function booted()
     {
-        // // Handle both created and updated events
-        // static::created(function ($post) {
-        //     // When a post is created with SCHEDULED status, queue all platform posts
-        //     if ($post->status === \App\Enums\PostStatus::SCHEDULED) {
-        //         $post->platformPosts()
-        //             ->where('status', \App\Enums\PlatformPostStatus::DRAFT)
-        //             ->update(['status' => \App\Enums\PlatformPostStatus::QUEUED]);
-        //     } // // Handle both created and updated events
-        // static::created(function ($post) {
-        //     // When a post is created with SCHEDULED status, queue all platform posts
-        //     if ($post->status === \App\Enums\PostStatus::SCHEDULED) {
-        //         $post->platformPosts()
-        //             ->where('status', \App\Enums\PlatformPostStatus::DRAFT)
-        //             ->update(['status' => \App\Enums\PlatformPostStatus::QUEUED]);
-        //     }
-
-        //     $post->createOrUpdateImageIfNecessary();
-        // });
-
-        //     $post->createOrUpdateImageIfNecessary();
-        // });
-
         static::saved(function ($post) {
-            // When post is published, queue all platform posts
-            if ($post->status === \App\Enums\PostStatus::PUBLISHING) {
-                $post->platformPosts()
-                    ->where('status', \App\Enums\PlatformPostStatus::DRAFT)
-                    ->update(['status' => \App\Enums\PlatformPostStatus::QUEUED]);
-
-                \App\Jobs\PublishPlatformPosts::dispatch($post);
-            }
-
             if ($post->status === \App\Enums\PostStatus::SCHEDULED) {
                 $post->platformPosts()
                     ->where('status', \App\Enums\PlatformPostStatus::DRAFT)

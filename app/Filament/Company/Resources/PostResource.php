@@ -893,7 +893,7 @@ class PostResource extends Resource
                                 'status' => \App\Enums\PostStatus::PUBLISHING
                             ]);
 
-                            \App\Jobs\PublishPlatformPosts::dispatch($record);
+                            \App\Jobs\PublishPlatformPosts::dispatch($record->id);
                         })
                         ->visible(
                             fn(Post $record) =>
